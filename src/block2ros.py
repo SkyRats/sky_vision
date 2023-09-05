@@ -16,12 +16,12 @@ from cam_config import CAMERA_MATRIX, DISTORTION_MATRIX, CAMERA_FOV, CAMERA_RES
 class BlockROS:
     def __init__(self):
         #Sim ranges
-        #lower_mask = np.array([110, 50, 50]) 
-        #upper_mask = np.array([130, 255, 255])
+        lower_mask = np.array([110, 50, 50]) 
+        upper_mask = np.array([130, 255, 255])
 
         #Drone ranges
-        lower_mask = np.array([[90,50,50]])
-        upper_mask = np.array([105, 255, 255])
+        #lower_mask = np.array([[90,50,50]])
+        #upper_mask = np.array([105, 255, 255])
 
         # Create the block detector object
         self.detector = BlockDetector(CAMERA_RES, lower_mask, upper_mask)

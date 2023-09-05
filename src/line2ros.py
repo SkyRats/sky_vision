@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 
 from sensor_msgs.msg import Image
-from geometry_msgs.msg import Point, Vector2
+from geometry_msgs.msg import Point, Vector3
 from std_msgs.msg import String
 from cv_bridge import CvBridge, CvBridgeError
 
@@ -16,9 +16,12 @@ from cam_config import CAMERA_MATRIX, DISTORTION_MATRIX, CAMERA_FOV, CAMERA_RES
 class LineROS:
     def __init__(self):
 
-        # Blue Mask ranges
-        lower_mask = np.array([ 69, 69, 37])
-        upper_mask = np.array([ 157, 255, 255])
+        # Blue Mask ranges for simulation
+        #lower_mask = np.array([ 69, 69, 37])
+        #upper_mask = np.array([ 157, 255, 255])
+        #Blue Mask ranges for drone
+        lower_mask = np.array([ 80, 113, 126])
+        upper_mask = np.array([ 115, 255, 227])
 
         # Create the block detector object
         self.detector = LineDetector(CAMERA_RES, lower_mask, upper_mask)
@@ -38,7 +41,7 @@ class LineROS:
 
         # Post detection pose info publisher
         self.pose_pub = rospy.Publisher('/sky_vision/down_cam/line/pose', Point, queue_size=1)
-        self.pose = Vector2()
+        self.pose = Vector3
 
         try:
             print("\nCreating line subscribers...")
