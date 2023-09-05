@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import rospy
 import cv2
 import numpy as np
@@ -14,9 +15,13 @@ from cam_config import CAMERA_MATRIX, DISTORTION_MATRIX, CAMERA_FOV, CAMERA_RES
 
 class BlockROS:
     def __init__(self):
+        #Sim ranges
+        #lower_mask = np.array([110, 50, 50]) 
+        #upper_mask = np.array([130, 255, 255])
 
-        lower_mask = np.array([110, 50, 50])
-        upper_mask = np.array([130, 255, 255])
+        #Drone ranges
+        lower_mask = np.array([[90,50,50]])
+        upper_mask = np.array([105, 255, 255])
 
         # Create the block detector object
         self.detector = BlockDetector(CAMERA_RES, lower_mask, upper_mask)
@@ -35,7 +40,7 @@ class BlockROS:
         self.cam = Image()
 
         # Post detection pose info publisher
-        self.pose_pub = rospy.Publisher('/sky_vision/down_cam/aruco/pose', Point, queue_size=1)
+        self.pose_pub = rospy.Publisher('/sky_vision/down_cam/block/pose', Point, queue_size=1)
         self.pose = Point()
 
         try:
@@ -59,25 +64,25 @@ class BlockROS:
 
     #-- Get new frame
     def camera_callback(self, message):
-
+       
         if self.type == "block":
-
+            #print("UIUIUIUI")
             # Bridge de ROS para CV
             cam = self.bridge_object.imgmsg_to_cv2(message, "bgr8")
             self.frame = cam
 
-            closest_target = self.detector.find_closest_circle(self.frame)
+            target = self.detector.mapCircles(self.frame)
 
-            if closest_target is not None and len(closest_target) > 0:
-
-                x, y, draw_img = closest_target
-
+            if target is not None:
+                #print("AAAAAAAAAAAAAAAAAAAAAAAAA")
+                (cx, cy), (w, h), angle = target
+                draw_img = cv2.circle(self.frame, (int(cx), int(cy)), 5, (0, 0, 255), -1)
                 # Publish image with target identified
                 ros_img = self.bridge_object.cv2_to_imgmsg(draw_img, 'bgr8')
                 self.newimg_pub.publish(ros_img)
 
-                self.pose.x = x
-                self.pose.y = y
+                self.pose.x = cx
+                self.pose.y = cy
                 self.pose.z = 0
 
                 # Publish target pose info

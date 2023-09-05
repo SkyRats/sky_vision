@@ -141,20 +141,27 @@ class BlockDetector:
    def findMask(self, frame):
       hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
       mask = cv2.inRange(hsv, self.lower, self.upper)
+      mask = cv2.erode(mask, None, iterations=2)
       return mask
 
    def mapCircles(self, frame):
       mask = self.findMask(frame)
       contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-      centers = []
+      maxArea = 0
+      maxContour = None
+      rect = None
       for i in contours:
          curve = cv2.approxPolyDP(i, 0.01*cv2.arcLength(i, True), True)
-         M = cv2.moments(curve)
-         cX = int(M['m10']/M['m00'])
-         cY = int(M["m01"]/M["m00"])
-         centers.append([cX, cY])
+         area = cv2.contourArea(curve)
+         if area > maxArea and area > 200:
+            maxArea = area
+            maxContour = curve
+         if maxContour is not None:
+            rect = cv2.minAreaRect(maxContour)
+            
+            
          
-      return centers
+      return rect
    
    def find_closest_circle(self, frame):
       centers = self.mapCircles(frame)
