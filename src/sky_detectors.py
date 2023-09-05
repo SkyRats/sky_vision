@@ -141,27 +141,20 @@ class BlockDetector:
    def findMask(self, frame):
       hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
       mask = cv2.inRange(hsv, self.lower, self.upper)
-      mask = cv2.erode(mask, None, iterations=2)
       return mask
 
    def mapCircles(self, frame):
       mask = self.findMask(frame)
       contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-      maxArea = 0
-      maxContour = None
-      rect = None
+      centers = []
       for i in contours:
          curve = cv2.approxPolyDP(i, 0.01*cv2.arcLength(i, True), True)
-         area = cv2.contourArea(curve)
-         if area > maxArea and area > 200:
-            maxArea = area
-            maxContour = curve
-         if maxContour is not None:
-            rect = cv2.minAreaRect(maxContour)
-            
-            
+         M = cv2.moments(curve)
+         cX = int(M['m10']/M['m00'])
+         cY = int(M["m01"]/M["m00"])
+         centers.append([cX, cY])
          
-      return rect
+      return centers
    
    def find_closest_circle(self, frame):
       centers = self.mapCircles(frame)
@@ -173,4 +166,87 @@ class BlockDetector:
             closest_target = center
             max_dist = dist
       return closest_target
+
+class LineDetector:
+   def __init__(self, cam_shape, lower, upper):
+      self.cam_shape = cam_shape
+      self.lower_mask = lower
+      self.upper_mask = upper
+      
+      
+   def findMask(self, frame):
+      hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+      mask = cv2.inRange(hsv, self.lower_mask, self.upper_mask)
+      kernel = np.ones((3, 3), np.uint8)
+      mask = cv2.erode(mask, kernel, iterations=5)
+      mask = cv2.dilate(mask, kernel, iterations=9)
+      return mask
+   
+   def zoom(self, cv_image, scale):
+        if cv_image is None: return None
+        width, height = self.cam_shape[0], self.cam_shape[1]
+
+        # Crop the image
+        centerX, centerY = int(height / 2), int(width / 2)
+        radiusX, radiusY = int(scale * height / 100), int(scale * width / 100)
+
+        minX, maxX = centerX - radiusX, centerX + radiusX
+        minY, maxY = centerY - radiusY, centerY + radiusY
+
+        cv_image = cv_image[minX:maxX, minY:maxY]
+        cv_image = cv2.resize(cv_image, (width, height))
+
+        return cv_image
+
+   def getErrorAndAngle(self, frame):
+      # Apply zoom
+      frame = self.zoom(frame, scale=20)
+
+      # Get mask
+      mask = self.findMask(frame)
+      
+      # Find contours in mask
+      contours_blk, _ = cv2.findContours(mask.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+      contours_blk = list(contours_blk)
+
+     # If there is a line
+      if len(contours_blk) > 0:
+
+         # starts looking from left to right
+         contours_blk.sort(key=cv2.minAreaRect)
+
+         # if the area of the contour is greater than minArea
+         if cv2.contourArea(contours_blk[0]) > self.minArea:
+             
+             blackbox = cv2.minAreaRect(contours_blk[0])
+             (x_min, y_min), (w_min, h_min), angle = blackbox
+             cv2.rectangle(frame, (int(x_min), int(y_min)), (int(x_min+w_min), int(y_min+h_min)), (0, 0, 255), 3)
+
+             # fix angles
+             if angle < -45:
+                 angle = 90 + angle
+             if w_min < h_min and angle > 0:
+                 angle = (90 - angle) * -1
+             if w_min > h_min and angle < 0:
+                 angle = 90 + angle
+
+             # Rotate image
+             angle += 90
+
+             # Optmize angle 
+             if angle > 90:
+                 angle = angle - 180
+
+             # Get distance from center of image
+             setpoint = self.cam_shape[1] / 2
+             error = int(x_min - setpoint)
+
+             ## Error correction (y axis)
+             normal_error = float(error) / setpoint
+
+
+      
+      return normal_error, angle, frame
+   
+
 
