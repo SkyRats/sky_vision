@@ -247,6 +247,75 @@ class LineDetector:
 
       
       return normal_error, angle, frame
+
+class WindowDetector:
+   def __init__(self, cam_shape, lower, upper):
+      self.cam_shape = cam_shape
+      self.lower_mask = lower
+      self.upper_mask = upper
+      self.dy = None
+      self.dz = None
+      self.maxd = 5
+      
+      
+   def findMask(self, frame):
+      hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+      mask = cv2.inRange(hsv, self.lower_mask, self.upper_mask)
+      kernel = np.ones((3, 3), np.uint8)
+      mask = cv2.erode(mask, kernel, iterations=5)
+      mask = cv2.dilate(mask, kernel, iterations=9)
+      return mask
+   
+   def get_bigger_square(self, squares):
+   # Recieves a list of squares and returns the bigger one
+      bigger_square = None
+      bigger_square_area = 0
+
+      for square in squares:
+            area = cv2.contourArea(square)
+            if area > bigger_square_area:
+               bigger_square = square
+               bigger_square_area = area
+
+      return bigger_square
+
+   def getErrors(self, frame):
+      # Get mask
+      mask = self.findMask(frame)
+      
+      # Find contours in mask
+      contours_blk, _ = cv2.findContours(mask.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+      contours_blk = list(contours_blk)
+
+     # If there is a contour
+      if len(contours_blk) > 0:
+
+         # Get the bigger one
+         contour = self.get_bigger_square(contours_blk)
+
+         # If the area is bigger than the min area
+         if cv2.contourArea(contour) > self.minWindowArea:
+               # Get the center of the image
+               width, height = self.cam_shape[0] , self.cam_shape[1]
+               centerX, centerY = int(width / 2), int(height / 2)
+
+               # Get the center of the contour
+               blackbox = cv2.minAreaRect(contour)
+               (x_min, y_min), (w_min, h_min), angle = blackbox
+               
+               # Draw on image
+               box = cv2.boxPoints(blackbox)
+               box = np.int0(box)
+               cv2.drawContours(frame, [box], 0, (0, 0, 255), 10)
+               cv2.circle(frame, (int(x_min), int(y_min)), 5, (255, 0, 0), 10)
+               cv2.circle(frame, (centerX, centerY), 5, (0, 255, 0), 10)
+
+               # Error calculation
+               self.dy = x_min - centerX
+               self.dz = y_min - centerY
+
+      
+      return self.dy, self.dz, frame
    
 
 
