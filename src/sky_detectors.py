@@ -172,6 +172,7 @@ class LineDetector:
       self.cam_shape = cam_shape
       self.lower_mask = lower
       self.upper_mask = upper
+      self.minArea = 5000
       
       
    def findMask(self, frame):
@@ -208,7 +209,7 @@ class LineDetector:
       # Find contours in mask
       contours_blk, _ = cv2.findContours(mask.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
       contours_blk = list(contours_blk)
-
+      normal_error, angle = None, None
      # If there is a line
       if len(contours_blk) > 0:
 
