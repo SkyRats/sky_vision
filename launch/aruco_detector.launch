@@ -1,4 +1,0 @@
-<launch> 
-<node pkg="sky_vision" name="aruco_detector" type="aruco_detector.py" output="screen">
-</node>
-</launch>
