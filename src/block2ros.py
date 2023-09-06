@@ -36,7 +36,7 @@ class BlockROS:
         self.bridge_object = CvBridge()
 
         # Post detection image publisher
-        self.newimg_pub = rospy.Publisher('/sky_vision/down_cam/block/image', Image, queue_size=10)
+        self.newimg_pub = rospy.Publisher('/sky_vision/down_cam/img_result', Image, queue_size=10)
         self.cam = Image()
 
         # Post detection pose info publisher
