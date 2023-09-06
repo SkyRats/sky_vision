@@ -19,9 +19,10 @@ class LineROS:
         # Blue Mask ranges for simulation
         #lower_mask = np.array([ 69, 69, 37])
         #upper_mask = np.array([ 157, 255, 255])
+
         #Blue Mask ranges for drone
-        lower_mask = np.array([ 80, 113, 126])
-        upper_mask = np.array([ 115, 255, 227])
+        lower_mask = np.array([69, 69, 37])
+        upper_mask = np.array([157, 255, 255])
 
         # Create the block detector object
         self.detector = LineDetector(CAMERA_RES, lower_mask, upper_mask)
@@ -73,8 +74,11 @@ class LineROS:
             angle, error, draw_img = self.detector.getErrorAndAngle(self.frame)
 
             if angle and error:
+
+                print(f"LINE DETECTED: angle = {angle} | y_error = {error}")
+
                 # Publish image with line identified
-                ros_img = self.bridge_object.cv2_to_imgmsg(draw_img, 'bgr8')
+                ros_img = self.bridge_object.cv2_to_imgmsg(draw_img, '8UC3')
                 self.newimg_pub.publish(ros_img)
 
                 # Calculate error correction
