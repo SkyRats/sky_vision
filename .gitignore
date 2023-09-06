@@ -1,2 +1,3 @@
 ./src/CameraCalibration/images/*
 ./src/CameraCalibration/*.png
+./src/__pycache__
