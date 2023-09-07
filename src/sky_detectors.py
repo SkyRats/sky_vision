@@ -130,7 +130,57 @@ class ArucoDetector:
          
          return closest_target
       return None
-    
+   def find_closest_arucrooked(self, frame):
+      # Marker detection
+      markerCorners, markerIds, rejected = self.detector.detectMarkers(frame)
+
+      i = 0
+      if len(markerCorners) > 0: # if detect any Arucos
+
+         closest_target = []
+         closest_dist = 100000 # 1000 m (arbitrary large value)
+
+         for corners in markerCorners: # For each Aruco
+
+               marker_points = corners[0] # Vector with 4 points (x, y) for the corners
+
+               # Check for false positives
+               if cv2.arcLength(np.array([marker_points]), True) > 180:
+                  print(cv2.arcLength(np.array([marker_points]), True))
+
+                  # Draw points in image
+                  final_image = self.draw_marker(frame, marker_points)
+
+                  # Pose estimation
+                  pose = self.pose_estimation(marker_points, self.marker_size, self.np_camera_matrix, self.np_dist_coeff)
+
+                  rvec, tvec = pose
+
+                  # 3D pose estimation vector
+                  x = round(tvec[0][0], 2)
+                  y = round(tvec[1][0], 2)
+                  z = round(tvec[2][0], 2)
+
+                  x_sum = marker_points[0][0] + marker_points[1][0] + marker_points[2][0] + marker_points[3][0]
+                  y_sum = marker_points[0][1] + marker_points[1][1] + marker_points[2][1] + marker_points[3][1]
+
+                  x_avg = x_sum / 4
+                  y_avg = y_sum / 4
+
+                  x_ang = (x_avg - self.horizontal_res*0.5 + 30000/z)*self.horizontal_fov/self.horizontal_res
+                  y_ang = (y_avg - self.vertical_res*0.5)*self.vertical_fov/self.vertical_res
+
+                  payload = markerIds[i][0]
+                  i += 1
+                  
+                  # Check for the closest target
+                  if z < closest_dist:
+                     closest_dist = z
+                     closest_target = [x, y, z, x_ang, y_ang, payload, final_image]
+         
+         return closest_target
+      return None
+
 
 class BlockDetector:
    def __init__(self, cam_shape, lower, upper):
