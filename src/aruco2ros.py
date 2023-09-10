@@ -96,7 +96,37 @@ class ArucoROS:
                 # Publish aruco pose info
                 self.pose_pub.publish(self.pose)
                 self.angle_pub.publish(self.angle)
+        
+        elif self.type == "arucrooked":
+            # Bridge de ROS para CV
+            cam = self.bridge_object.imgmsg_to_cv2(message, "bgr8")
+            self.frame = cam
 
+            # Look for the closest target in the frame
+            closest_target = self.detector.find_closest_arucrooked(self.frame)
+
+            if closest_target is not None and len(closest_target) > 0:
+                
+                # Unpack results
+                x, y, z, x_ang, y_ang, payload, draw_img = closest_target
+
+                print(f'MARKER POSITION: x = {x} | y = {y} | z = {z} | x_ang = {round(x_ang, 2)} | y_ang = {round(y_ang, 2)} | ID = {payload}')
+                
+                # Publish image with target identified
+                ros_img = self.bridge_object.cv2_to_imgmsg(draw_img, 'bgr8')
+                self.newimg_pub.publish(ros_img)
+
+                self.pose.x = x
+                self.pose.y = y
+                self.pose.z = z
+
+                self.angle.x = x_ang
+                self.angle.y = y_ang
+                self.angle.z = 0
+
+                # Publish aruco pose info
+                self.pose_pub.publish(self.pose)
+                self.angle_pub.publish(self.angle)
 
 # Init the aruco detector package
 package = ArucoROS()

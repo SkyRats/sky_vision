@@ -130,7 +130,57 @@ class ArucoDetector:
          
          return closest_target
       return None
-    
+   def find_closest_arucrooked(self, frame):
+      # Marker detection
+      markerCorners, markerIds, rejected = self.detector.detectMarkers(frame)
+
+      i = 0
+      if len(markerCorners) > 0: # if detect any Arucos
+
+         closest_target = []
+         closest_dist = 100000 # 1000 m (arbitrary large value)
+
+         for corners in markerCorners: # For each Aruco
+
+               marker_points = corners[0] # Vector with 4 points (x, y) for the corners
+
+               # Check for false positives
+               if cv2.arcLength(np.array([marker_points]), True) > 180:
+                  print(cv2.arcLength(np.array([marker_points]), True))
+
+                  # Draw points in image
+                  final_image = self.draw_marker(frame, marker_points)
+
+                  # Pose estimation
+                  pose = self.pose_estimation(marker_points, self.marker_size, self.np_camera_matrix, self.np_dist_coeff)
+
+                  rvec, tvec = pose
+
+                  # 3D pose estimation vector
+                  x = round(tvec[0][0], 2)
+                  y = round(tvec[1][0], 2)
+                  z = round(tvec[2][0], 2)
+
+                  x_sum = marker_points[0][0] + marker_points[1][0] + marker_points[2][0] + marker_points[3][0]
+                  y_sum = marker_points[0][1] + marker_points[1][1] + marker_points[2][1] + marker_points[3][1]
+
+                  x_avg = x_sum / 4
+                  y_avg = y_sum / 4
+
+                  x_ang = (x_avg - self.horizontal_res*0.5 + 30000/z)*self.horizontal_fov/self.horizontal_res
+                  y_ang = (y_avg - self.vertical_res*0.5)*self.vertical_fov/self.vertical_res
+
+                  payload = markerIds[i][0]
+                  i += 1
+                  
+                  # Check for the closest target
+                  if z < closest_dist:
+                     closest_dist = z
+                     closest_target = [x, y, z, x_ang, y_ang, payload, final_image]
+         
+         return closest_target
+      return None
+
 
 class BlockDetector:
    def __init__(self, cam_shape, lower, upper):
@@ -167,6 +217,7 @@ class BlockDetector:
             max_dist = dist
       return closest_target
 
+
 class LineDetector:
    def __init__(self, cam_shape, lower, upper):
       self.cam_shape = cam_shape
@@ -178,11 +229,14 @@ class LineDetector:
    def findMask(self, frame):
       hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
       mask = cv2.inRange(hsv, self.lower_mask, self.upper_mask)
-      kernel = np.ones((3, 3), np.uint8)
-      mask = cv2.erode(mask, kernel, iterations=5)
-      mask = cv2.dilate(mask, kernel, iterations=9)
+      # kernel = np.ones((3, 3), np.uint8)
+      # mask = cv2.erode(mask, kernel, iterations=5)
+      # mask = cv2.dilate(mask, kernel, iterations=9)
       return mask
    
+   # def binary(self, frame):
+   
+
    def zoom(self, cv_image, scale):
         if cv_image is None: return None
         width, height = self.cam_shape[0], self.cam_shape[1]
@@ -199,6 +253,12 @@ class LineDetector:
 
         return cv_image
 
+
+   def draw_line(self, frame, points):
+      rect = cv2.drawContours(frame, [points], 0, (0, 0, 255), 2)
+      return rect
+
+
    def getErrorAndAngle(self, frame):
       # Apply zoom
       frame = self.zoom(frame, scale=20)
@@ -209,7 +269,8 @@ class LineDetector:
       # Find contours in mask
       contours_blk, _ = cv2.findContours(mask.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
       contours_blk = list(contours_blk)
-      normal_error, angle = None, None
+      normal_error, angle, result = None, None, None
+
      # If there is a line
       if len(contours_blk) > 0:
 
@@ -219,35 +280,41 @@ class LineDetector:
          # if the area of the contour is greater than minArea
          if cv2.contourArea(contours_blk[0]) > self.minArea:
              
-             blackbox = cv2.minAreaRect(contours_blk[0])
-             (x_min, y_min), (w_min, h_min), angle = blackbox
-             cv2.rectangle(frame, (int(x_min), int(y_min)), (int(x_min+w_min), int(y_min+h_min)), (0, 0, 255), 3)
+            blackbox = cv2.minAreaRect(contours_blk[0])
 
-             # fix angles
-             if angle < -45:
-                 angle = 90 + angle
-             if w_min < h_min and angle > 0:
-                 angle = (90 - angle) * -1
-             if w_min > h_min and angle < 0:
-                 angle = 90 + angle
+            (x_min, y_min), (w_min, h_min), angle = blackbox
 
-             # Rotate image
-             angle += 90
+            box = cv2.boxPoints(blackbox)
+            box = np.intp(box)
 
-             # Optmize angle 
-             if angle > 90:
-                 angle = angle - 180
+            rect = self.draw_line(frame, box)
 
-             # Get distance from center of image
-             setpoint = self.cam_shape[1] / 2
-             error = int(x_min - setpoint)
+            # fix angles
+            if angle < -45:
+               angle = 90 + angle
+            if w_min < h_min and angle > 0:
+               angle = (90 - angle) * -1
+            if w_min > h_min and angle < 0:
+               angle = 90 + angle
 
-             ## Error correction (y axis)
-             normal_error = float(error) / setpoint
+            # Rotate image
+            # angle += 90
 
+            # Optmize angle 
+            if angle > 90:
+               angle = angle - 180
 
-      
-      return normal_error, angle, frame
+            # Get distance from center of image
+            setpoint = self.cam_shape[1] / 2
+            error = int(x_min - setpoint)
+
+            ## Error correction (y axis)
+            normal_error = float(error) / setpoint
+
+            result = rect
+
+      return normal_error, angle, result
+
 
 class WindowDetector:
    def __init__(self, cam_shape, lower, upper):
