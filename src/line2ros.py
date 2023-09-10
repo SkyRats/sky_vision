@@ -42,7 +42,7 @@ class LineROS:
 
         # Post detection pose info publisher
         self.pose_pub = rospy.Publisher('/sky_vision/down_cam/line/pose', Point, queue_size=10)
-        self.pose = Vector3()
+        self.pose = Point()
 
         try:
             print("\nCreating line subscribers...")
@@ -71,7 +71,7 @@ class LineROS:
             cam = self.bridge_object.imgmsg_to_cv2(message, "bgr8")
             self.frame = cam
 
-            angle, error, draw_img = self.detector.getErrorAndAngle(self.frame)
+            error, angle, draw_img = self.detector.getErrorAndAngle(self.frame)
 
             if angle and error:
 
@@ -84,9 +84,16 @@ class LineROS:
                 # Calculate error correction
                 self.pose.x = error
                 self.pose.y = angle
-                self.pose.z = 0
+                self.pose.z = 1
                 
                 # Publish target pose info
+                self.pose_pub.publish(self.pose)
+            else:
+                print("NO LINE DETECTED")
+                self.pose.x = 0
+                self.pose.y = 0
+                self.pose.z = 0
+
                 self.pose_pub.publish(self.pose)
 
 

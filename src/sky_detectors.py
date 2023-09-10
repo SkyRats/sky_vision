@@ -229,9 +229,9 @@ class LineDetector:
    def findMask(self, frame):
       hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
       mask = cv2.inRange(hsv, self.lower_mask, self.upper_mask)
-      # kernel = np.ones((3, 3), np.uint8)
-      # mask = cv2.erode(mask, kernel, iterations=5)
-      # mask = cv2.dilate(mask, kernel, iterations=9)
+      kernel = np.ones((3, 3), np.uint8)
+      mask = cv2.erode(mask, kernel, iterations=5)
+      mask = cv2.dilate(mask, kernel, iterations=9)
       return mask
    
    # def binary(self, frame):
@@ -298,7 +298,7 @@ class LineDetector:
                angle = 90 + angle
 
             # Rotate image
-            # angle += 90
+            angle += 90
 
             # Optmize angle 
             if angle > 90:
