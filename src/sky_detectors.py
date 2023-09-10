@@ -324,6 +324,8 @@ class WindowDetector:
       self.dy = None
       self.dz = None
       self.maxd = 5
+      self.minWindowArea = 12000
+      
       
       
    def findMask(self, frame):

@@ -89,7 +89,7 @@ class LineROS:
                 # Publish target pose info
                 self.pose_pub.publish(self.pose)
             else:
-                print("NO LINE DETECTED")
+                #print("NO LINE DETECTED")
                 self.pose.x = 0
                 self.pose.y = 0
                 self.pose.z = 0
