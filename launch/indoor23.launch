@@ -1,9 +1,6 @@
-<launch> 
-<<<<<<< HEAD
+<launch>
     <node pkg="sky_vision" name="video_capture" type="camera2ros.py" output="screen">
     </node>
-=======
->>>>>>> fe766153553df333611766373555a033b6565109
     <node pkg="sky_vision" name="aruco_detector" type="aruco2ros.py" output="screen">
     <node pkg="sky_vision" name="line_detector" type="line2ros.py" output="screen">
     </node>
