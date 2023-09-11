@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 
 import cv2
 from cv2 import aruco
@@ -324,6 +324,8 @@ class WindowDetector:
       self.dy = None
       self.dz = None
       self.maxd = 5
+      self.minWindowArea = 12000
+      
       
       
    def findMask(self, frame):

@@ -8,8 +8,8 @@ from cv_bridge import CvBridge, CvBridgeError
 
 class VideoCapture:
     def __init__(self):
-        self.cap = cv2.VideoCapture(0)
-        self.im_pub = rospy.Publisher('/sky_vision/down_cam/img_raw', Image, queue_size=10)
+        self.cap = cv2.VideoCapture(1)
+        self.im_pub = rospy.Publisher('/sky_vision/front_cam/img_raw', Image, queue_size=10)
         self.bridge = CvBridge()
     
     def capture(self):
@@ -20,7 +20,7 @@ class VideoCapture:
             print(e)
 
 
-rospy.init_node('sky_vision_camera', anonymous=False)
+rospy.init_node('sky_vision_frontcamera', anonymous=False)
 
 vc = VideoCapture()
 

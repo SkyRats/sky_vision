@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 import rospy
 import cv2
 import numpy as np
@@ -38,7 +38,7 @@ class WindowROS:
 
         # Post detection pose info publisher
         self.pose_pub = rospy.Publisher('/sky_vision/front_cam/window/pose', Point, queue_size=1)
-        self.pose = Vector3()
+        self.pose = Point()
 
         try:
             print("\nCreating window subscribers...")
@@ -61,13 +61,15 @@ class WindowROS:
 
     #-- Get new frame
     def camera_callback(self, message):
+
        
         if self.type == "window":
             # Bridge de ROS para CV
             cam = self.bridge_object.imgmsg_to_cv2(message, "bgr8")
             self.frame = cam
 
-            dy, dz, draw_img = self.detector.getErrorAndAngle(self.frame)
+            dy, dz, draw_img = self.detector.getErrors(self.frame)
+            print(f"DY: {dy}")
 
             if dy or dz:
                 # Publish image with window identified
