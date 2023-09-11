@@ -18,7 +18,7 @@ criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 objp = np.zeros((chessboardSize[0] * chessboardSize[1], 3), np.float32)
 objp[:,:2] = np.mgrid[0:chessboardSize[0],0:chessboardSize[1]].T.reshape(-1,2)
 
-size_of_chessboard_squares_mm = 11
+size_of_chessboard_squares_mm = 20
 objp = objp * size_of_chessboard_squares_mm
 
 
@@ -27,7 +27,7 @@ objpoints = [] # 3d point in real world space
 imgpoints = [] # 2d points in image plane.
 
 
-images = glob.glob('missions/CameraCalibration/images/*.png')
+images = glob.glob('./images/*.png')
 
 for image in images:
 
@@ -41,7 +41,7 @@ for image in images:
     if ret == True:
 
         objpoints.append(objp)
-        corners2 = cv.cornerSubPix(gray, corners, (11,11), (-1,-1), criteria)
+        corners2 = cv.cornerSubPix(gray, corners, (11, 11), (-1,-1), criteria)
         imgpoints.append(corners)
 
         # Draw and display the corners
@@ -51,9 +51,6 @@ for image in images:
 
 
 cv.destroyAllWindows()
-
-
-
 
 ############## CALIBRATION #######################################################
 
@@ -69,7 +66,7 @@ print(f"Camera matrix: {cameraMatrix}\nDist: {dist}")
 
 ############## UNDISTORTION #####################################################
 
-img = cv.imread('CameraCalibration/img0.png')
+img = cv.imread('./images/0.png')
 h,  w = img.shape[:2]
 newCameraMatrix, roi = cv.getOptimalNewCameraMatrix(cameraMatrix, dist, (w,h), 1, (w,h))
 
@@ -81,7 +78,7 @@ dst = cv.undistort(img, cameraMatrix, dist, None, newCameraMatrix)
 # crop the image
 x, y, w, h = roi
 dst = dst[y:y+h, x:x+w]
-cv.imwrite('CameraCalibration/caliResult1.png', dst)
+cv.imwrite('./caliResult1.png', dst)
 
 
 
@@ -92,7 +89,7 @@ dst = cv.remap(img, mapx, mapy, cv.INTER_LINEAR)
 # crop the image
 x, y, w, h = roi
 dst = dst[y:y+h, x:x+w]
-cv.imwrite('CameraCalibration/caliResult2.png', dst)
+cv.imwrite('./caliResult2.png', dst)
 
 
 
