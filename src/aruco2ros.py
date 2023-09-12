@@ -1,4 +1,4 @@
-#!/usr/bin/ python3
+#!/usr/bin/env python
 
 import rospy
 from cv_bridge import CvBridge
@@ -14,7 +14,7 @@ CAMERA_INFO = [CAMERA_MATRIX, DISTORTION_MATRIX, CAMERA_RES, CAMERA_FOV]
 
 ARUCO_TYPE = 5 # (5X5, 4X4, etc...)
 
-TARGET_SIZE = 50 # 50x50cm square
+TARGET_SIZE = 15 # 50x50cm square
 
 
 class ArucoROS:
