@@ -1,0 +1,4 @@
+<launch> 
+    <node pkg="sky_vision" name="barcode_detector" type="barcode2ros.py" output="screen">
+    </node>
+</launch>

@@ -17,7 +17,7 @@ class QRcodeDetector():
         rospy.init_node('sky_vision_barcode', anonymous=False)
         
         # Post detection image publisher
-        self.newbarcode_pub = rospy.Publisher('/sky_vision/down_cam/barcode_read', String, queue_size=10)
+        self.newbarcode_pub = rospy.Publisher('/sky_vision/front_cam/barcode_read', String, queue_size=10)
         self.code = String()
         
         # State of the detection
@@ -32,8 +32,8 @@ class QRcodeDetector():
         try:
             print("\nCreating pad subscribers...")
             #rospy.Subscriber('/webcam/image_raw', Image, self.camera_callback)
-            rospy.Subscriber('/sky_vision/down_cam/img_raw', Image, self.camera_callback)
-            rospy.Subscriber('/sky_vision/down_cam/type', String, self.type_callback)
+            rospy.Subscriber('/sky_vision/front_cam/img_raw', Image, self.camera_callback)
+            rospy.Subscriber('/sky_vision/front_cam/type', String, self.type_callback)
             print("Pad subscribers up!")
         except:
             print('Error trying to create subscribers!')
