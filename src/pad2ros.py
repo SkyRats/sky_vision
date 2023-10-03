@@ -10,24 +10,17 @@ from cv_bridge import CvBridge
 from sensor_msgs.msg import Image
 from std_msgs.msg import String, Int16MultiArray
 
-from cam_config import CAMERA_MATRIX, DISTORTION_MATRIX, CAMERA_FOV, CAMERA_RES
-
-CAMERA_INFO = [CAMERA_MATRIX, DISTORTION_MATRIX, CAMERA_RES, CAMERA_FOV]
- 
-TARGET_SIZE = 30 # 1mx1m square
-
 class PadDetector:
 
     def __init__(self) -> None:
         print("initiating detector...")
         os.environ["CUDA_VISIBLE_DEVICES"]=""
-        self.model = torch.hub.load('/home/gui/yolov5', 'custom', path='./best.pt', force_reload=True, source='local')
+        self.model = torch.hub.load('/home/gui/yolov5', 'custom', path='./best of the best.pt', force_reload=True, source='local')
         self.tracker = cv2.TrackerKCF_create()    
         self.tracking = False  
-        self.delta = 3
         self.processed_image = None
         
-
+        self.delta = 1
         #max time given to tracker since last correct tracking
         self.start = 0
         #time elapsed since tracker stopped tracking
@@ -35,7 +28,7 @@ class PadDetector:
     def detect(self, image):
         
         #simulating processing time
-        time.sleep(uniform(0.7, 0.9))
+        time.sleep(uniform(0.5, 0.7))
         
         tracked_object = None
         
@@ -45,7 +38,7 @@ class PadDetector:
         print("SEEN OBJECTS:: ", len(objects))
         for object in objects:
             print(object)
-            if object[5] == 0:
+            if object[5] != 100:
                 
                 tracked_object = object
                 box = (object[0], object[1],
@@ -112,8 +105,8 @@ class PadRos:
         
         try:
             print("\nCreating pad subscribers...")
-            rospy.Subscriber('/webcam/image_raw', Image, self.camera_callback)
-            #rospy.Subscriber('/sky_vision/down_cam/img_raw', Image, self.camera_callback)
+            #rospy.Subscriber('/webcam/image_raw', Image, self.camera_callback)
+            rospy.Subscriber('/sky_vision/down_cam/img_raw', Image, self.camera_callback)
             rospy.Subscriber('/sky_vision/down_cam/type', String, self.type_callback)
             print("Pad subscribers up!")
         except:
@@ -121,15 +114,13 @@ class PadRos:
 
         self.frame = None
 
-        rospy.spin()
-
     def type_callback(self, message):
 
         # Get current state
         self.type = message.data
     
     def camera_callback(self, message):
-        print("---camera callback---")
+        #print("---camera callback---")
         
         if self.type != "pad":
             print("---ended callback (pad detection not desired)---")
@@ -138,14 +129,22 @@ class PadRos:
         # Bridge de ROS para CV
         cam = self.bridge_object.imgmsg_to_cv2(message, "bgr8")
         self.frame = cam
+        
+        #print("---ended callback---\n")
+        
+    def process(self):
+        
+        try:
+            if self.frame == None or self.type != "pad":
+                return
 
-        #process image
-        self.processing = True
+        except:
+            print("FRAME FOUND")
         
         if self.detector.tracking == False:
             print("TRYING TO DETECT...")
             self.detector.detect(self.frame)
-        
+            
         else:
             print("TRYING TO TRACK...")
             #get bounding box from tracker
@@ -158,11 +157,14 @@ class PadRos:
                 
                 self.newimg_pub.publish(ros_image)
                 self.bb_pub.publish(self.bb)
-        
-        self.processing = False
-        
-        print("---ended callback---\n")
 
 # Init the pad detector package
 package = PadRos()
- 
+
+while(not rospy.is_shutdown()):
+    try:
+        package.process()
+        
+    except KeyboardInterrupt:
+        print("Shutting down")
+        cv2.destroyAllWindows()
