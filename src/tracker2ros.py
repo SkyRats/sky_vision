@@ -58,3 +58,11 @@ class Tracker():
         else:
             print("NOT TRACKING")
 
+def main():
+    rospy.init_node('sky_vision_pad', anonymous=False)
+    tracker = Tracker()
+    while not rospy.is_shutdown():
+        try:
+            tracker.track(tracker.image)
+        except KeyboardInterrupt:
+            print("Shutting down")
