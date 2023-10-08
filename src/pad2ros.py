@@ -15,7 +15,7 @@ class PadDetector:
     def __init__(self) -> None:
         print("initiating detector...")
         os.environ["CUDA_VISIBLE_DEVICES"]=""
-        self.model = torch.hub.load('/home/gui/yolov5', 'custom', path='./best of the best.pt', force_reload=True, source='local')
+        self.model = torch.hub.load('/home/gui/yolov5', 'custom', path='./cbr_best.pt', force_reload=True, source='local')
         self.tracker = cv2.TrackerKCF_create()    
         self.tracking = False  
         self.processed_image = None
