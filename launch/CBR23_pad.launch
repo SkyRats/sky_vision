@@ -1,7 +1,5 @@
 <launch> 
-    <node pkg="sky_vision" name="pad_tracker" type="tracker2ros.py" output="screen">
-    </node>
-    <node pkg="sky_vision" name="pad_service" type="padsrv.py" output="screen">
+    <node pkg="sky_vision" name="pad_detector" type="pad2ros_only_detector.py" output="screen">
     </node>
     <node pkg="sky_vision" name="video_capture" type="camera2ros.py" output="screen">
     </node>
