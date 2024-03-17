@@ -1,0 +1,9 @@
+<launch> 
+    <node pkg="sky_vision" name="camera_0" type="camera" output="screen"> 
+    <param name="~camera/index" type="int" value="0" />
+    </node> 
+    
+    <node pkg="sky_vision" name="camera_1" type="camera" output="screen">
+    <param name="~camera/index" type="int" value="3" />
+    </node>
+</launch>

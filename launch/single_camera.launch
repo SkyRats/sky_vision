@@ -1,0 +1,4 @@
+<launch> 
+    <node pkg="sky_vision" name="camera" type="camera" output="screen">
+    </node>
+</launch>

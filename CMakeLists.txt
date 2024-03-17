@@ -195,5 +195,11 @@ include_directories(
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
 
+find_package(OpenCV)
+include_directories(include ${catkin_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS})
+add_executable(camera src/camera2ros.cpp)
+target_link_libraries(camera ${catkin_LIBRARIES})
+target_link_libraries(camera ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
