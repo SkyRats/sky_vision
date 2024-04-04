@@ -1,0 +1,8 @@
+<launch> 
+    <node pkg="sky_vision" name="look4color" type="look4color.py" output="screen">
+    <param name="color" type="string" value="blue" />
+    <param name="index" type="int" value="1" />
+    <param name="minimalPercentage" type="double" value="0.8" />	
+    <param name="show" type="bool" value="false" /> 	
+    </node>
+</launch>
