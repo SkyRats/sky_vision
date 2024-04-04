@@ -4,11 +4,9 @@ import cv2
 from cv2 import aruco
 import numpy as np
 
-
 class ColorMask:
    def __init__(self):
       pass
-
 
 class ArucoDetector:
    def __init__(self, size, marker_size, camera_info) -> None:
@@ -387,5 +385,3 @@ class WindowDetector:
       
       return self.dy, self.dz, frame
    
-
-

@@ -12,7 +12,6 @@ from sky_detectors import WindowDetector
 
 from cam_config import CAMERA_MATRIX, DISTORTION_MATRIX, CAMERA_FOV, CAMERA_RES
 
-
 class WindowROS:
     def __init__(self):
 
