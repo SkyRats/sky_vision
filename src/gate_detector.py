@@ -6,41 +6,58 @@ import numpy as np
 from cv_bridge import CvBridge
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Point
+from geometry_msgs.msg import Polygon, Point32
+from std_msgs.msg import Float64
 
 class GateDetector:
     def __init__(self):
         self.bridge = CvBridge()
         self.image_sub = rospy.Subscriber("/sky_vision/front_cam/img_raw", Image, self.image_callback)
-        self.position_pub = rospy.Publisher("/gate_position", Point, queue_size=10)
+        self.corners_pub = rospy.Publisher("/gate_corners", Polygon, queue_size=10)
+        self.area_pub = rospy.Publisher("/gate_area", Float64, queue_size=10)
 
-        self.camera_matrix = np.array([[536.60468864, 0.0, 336.71838244],
-                                       [0.0, 478.13866264, 353.24213721],
-                                       [0.0, 0.0, 1.0]], dtype=np.float32)
-        self.dist_coeffs = np.array([0.0, 0.0, 0.0, 0.0, 0.0], dtype=np.float32)
-        
+        self.latest_image = None
+        self.timer = rospy.Timer(rospy.Duration(0.5), self.timer_callback)
+
     def image_callback(self, msg):
+        self.latest_image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
 
-        cv_image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
-        rospy.loginfo("Received image")
-        
-        position = self.detect_gate(cv_image)
-        if position is not None:
-            point_msg = Point()
-            point_msg.x, point_msg.y, point_msg.z = position
-            self.position_pub.publish(point_msg)
-            rospy.loginfo(f"Published position: {position}")
-        else:
-            rospy.loginfo("No gate detected")
+    def timer_callback(self, event):
+        if self.latest_image is not None:
+            gate_corners, final_image, area = self.detect_gate(self.latest_image)
+            if gate_corners is not None:
+                
+                # Publish the corners
+                polygon_msg = Polygon()
+                for corner in gate_corners:
+                    point32 = Point32()
+                    point32.x = corner[0]
+                    point32.y = corner[1]
+                    point32.z = 0.0  # Assuming the corners are in 2D plane
+                    polygon_msg.points.append(point32)
+                self.corners_pub.publish(polygon_msg)
+                rospy.loginfo(f"Published corners: {gate_corners}")
+
+                # Publish the area
+                area_msg = Float64()
+                area_msg.data = area
+                self.area_pub.publish(area_msg)
+                rospy.loginfo(f"Published area: {area}")
+
+                final_image = self.draw_gate(final_image, gate_corners)
+                cv2.imshow("Gate Detection", final_image)
+                cv2.waitKey(1)
+            else:
+                rospy.loginfo("No gate detected")
 
     def detect_gate(self, image):
-
         hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-        
+
         # Define the red color range in HSV
         lower_red = np.array([0, 100, 100])
         upper_red = np.array([10, 255, 255])
         mask1 = cv2.inRange(hsv, lower_red, upper_red)
-        
+
         lower_red = np.array([160, 100, 100])
         upper_red = np.array([179, 255, 255])
         mask2 = cv2.inRange(hsv, lower_red, upper_red)
@@ -49,11 +66,14 @@ class GateDetector:
 
         cv2.imshow("Mask", mask)
         cv2.waitKey(1)
-        
+
         # Find contours
         contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         rospy.loginfo(f"Found {len(contours)} contours")
-        
+
+        max_area = 0
+        max_area_contour = None
+
         # Loop over the contours to find the gate
         for contour in contours:
             x, y, w, h = cv2.boundingRect(contour)
@@ -61,21 +81,52 @@ class GateDetector:
             area = cv2.contourArea(contour)
             rospy.loginfo(f"Contour area: {area}, aspect ratio: {aspect_ratio}")
 
-            if 0.9 < aspect_ratio < 1.5 and 1000 < area < 10000:
+            if 0.9 < aspect_ratio < 1.5 and 1000 < area and area > max_area:
+                max_area = area
+                max_area_contour = contour
                 rospy.loginfo("Detected rectangular contour")
-                
 
-                M = cv2.moments(contour)
-                if M["m00"] != 0:
-                    cX = int(M["m10"] / M["m00"])
-                    cY = int(M["m01"] / M["m00"])
+        if max_area_contour is not None:
+            epsilon = 0.02 * cv2.arcLength(max_area_contour, True)
+            approx = cv2.approxPolyDP(max_area_contour, epsilon, True)
 
-                    z = 1.0  # Assume a certain distance, need calibration
-                    x = (cX - self.camera_matrix[0, 2]) * z / self.camera_matrix[0, 0]
-                    y = (cY - self.camera_matrix[1, 2]) * z / self.camera_matrix[1, 0]
-                    rospy.loginfo(f"Detected gate at (x, y, z): ({x}, {y}, {z})")
-                    return (x, y, z)
-        return None
+            if len(approx) >= 4:
+                rospy.loginfo("Detected quadrilateral contour")
+                corners = approx.reshape(-1, 2)  # Extract all corners
+
+                # Sort corners based on their coordinates
+                sorted_corners = sorted(corners, key=lambda x: x[1])  # Sort by y-coordinate
+
+                # Determine top and bottom corners
+                top_corners = sorted_corners[:2]
+                bottom_corners = sorted_corners[2:]
+
+                # Sort top corners by x-coordinate
+                top_sorted = sorted(top_corners, key=lambda x: x[0])
+                bottom_sorted = sorted(bottom_corners, key=lambda x: x[0])
+
+                # Arrange extreme points into a list
+                gate_corners = [
+                    top_sorted[0],  # Top-left
+                    top_sorted[-1],  # Top-right
+                    bottom_sorted[0],  # Bottom-left
+                    bottom_sorted[-1]  # Bottom-right
+                ]
+
+                return gate_corners, image, max_area
+
+        return None, image, 0
+
+    def draw_gate(self, image, corners):
+
+        for i in range(len(corners)):
+            cv2.circle(image, tuple(corners[i]), 5, (0, 255, 0), -1)
+
+        for i in range(len(corners)):
+            cv2.line(image, tuple(corners[i]), tuple(corners[(i+1) % len(corners)]), (255, 0, 0), 2)
+        
+        return image
+
 
 if __name__ == '__main__':
     rospy.init_node('gate_detector', anonymous=True)
