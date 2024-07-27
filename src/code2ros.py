@@ -11,6 +11,7 @@ import numpy as np
 class codeDetector:
     def __init__(self):
         self.publisher = rospy.Publisher("/sky_vision/code/read", String, queue_size=10)
+        print("Created publisher")
         self.bridge = CvBridge()
         self.code = String()
 
@@ -20,7 +21,7 @@ class codeDetector:
             code_read = code.data.decode('utf-8')
             self.code.data = code_read
             self.publisher.publish(self.code)
-            print("Found QR Code")
+            print("Found QR Code: %s" % code_read)
 
     def callback(self, message):
         frame = cv2.cvtColor(self.bridge.imgmsg_to_cv2(message, "bgr8"), cv2.COLOR_BGR2GRAY)
@@ -30,16 +31,22 @@ def main():
     rospy.init_node("code_detector")
     detector = codeDetector()
 
-    topics = rospy.get_published_topics()
-    topic_list = [topic for topic, _ in topics]
+    rate = rospy.Rate(10)  # Adjust the rate as needed
+    subscribed = False
 
-    # Check if down cam topic exists, otherwise use the generic cam topic
-    if "/sky_vision/down_cam/img_raw" in topic_list:
-        rospy.Subscriber("/sky_vision/down_cam/img_raw", Image, detector.callback)
-    else:
-        rospy.Subscriber("/sky_vision/generic_cam/img_raw", Image, detector.callback)
-
-    rospy.spin()
+    while not rospy.is_shutdown():
+        if not subscribed:
+            topics = rospy.get_published_topics()
+            topic_list = [topic for topic, _ in topics]
+            if "/sky_vision/down_cam/img_raw" in topic_list:
+                rospy.Subscriber("/sky_vision/down_cam/img_raw", Image, detector.callback)
+                subscribed = True
+                print("Subscribed to /sky_vision/down_cam/img_raw")
+            elif "/sky_vision/generic_cam/img_raw" in topic_list:
+                rospy.Subscriber("/sky_vision/generic_cam/img_raw", Image, detector.callback)
+                subscribed = True
+                print("Subscribed to /sky_vision/generic_cam/img_raw")
+        rate.sleep()
 
 if __name__ == '__main__':
     main()
