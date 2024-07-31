@@ -7,26 +7,29 @@ from cv_bridge import CvBridge
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Point
 from geometry_msgs.msg import Polygon, Point32
-from std_msgs.msg import Float64
+from std_msgs.msg import Float64, String
 
 class GateDetector:
     def __init__(self):
-        self.bridge = CvBridge()
-        self.image_sub = rospy.Subscriber("/sky_vision/front_cam/img_raw", Image, self.image_callback)
-        self.corners_pub = rospy.Publisher("/gate_corners", Polygon, queue_size=10)
-        self.area_pub = rospy.Publisher("/gate_area", Float64, queue_size=10)
-
-        self.latest_image = None
-        self.timer = rospy.Timer(rospy.Duration(0.5), self.timer_callback)
+        self.bridge         = CvBridge()
+        self.image_sub      = rospy.Subscriber("/sky_vision/front_cam/img_raw", Image, self.image_callback)
+        self.corners_pub    = rospy.Publisher("/gate_corners", Polygon, queue_size=10)
+        self.area_pub       = rospy.Publisher("/gate_area", Float64, queue_size=10)
+        self.color_pub      = rospy.Publisher("/gate_color", String, queue_size=10)
+        self.latest_image   = None
+        self.timer          = rospy.Timer(rospy.Duration(0.5), self.timer_callback)
 
     def image_callback(self, msg):
         self.latest_image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
 
     def timer_callback(self, event):
         if self.latest_image is not None:
-            gate_corners, final_image, area = self.detect_gate(self.latest_image)
+            gate_corners, final_image, area, gate_color = self.detect_gate(self.latest_image)
             if gate_corners is not None:
                 
+                self.color_pub.publish(gate_color)
+                rospy.loginfo(f"Gate color: {gate_color}")
+
                 # Publish the corners
                 polygon_msg = Polygon()
                 for corner in gate_corners:
@@ -54,15 +57,21 @@ class GateDetector:
         hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
         # Define the red color range in HSV
-        lower_red = np.array([0, 100, 100])
-        upper_red = np.array([10, 255, 255])
-        mask1 = cv2.inRange(hsv, lower_red, upper_red)
+        lower_red   = np.array([0, 100, 100])
+        upper_red   = np.array([10, 255, 255])
+        mask1       = cv2.inRange(hsv, lower_red, upper_red)
 
-        lower_red = np.array([160, 100, 100])
-        upper_red = np.array([179, 255, 255])
-        mask2 = cv2.inRange(hsv, lower_red, upper_red)
+        lower_red   = np.array([160, 100, 100])
+        upper_red   = np.array([179, 255, 255])
+        mask2       = cv2.inRange(hsv, lower_red, upper_red)
+        red_mask    = mask1 + mask2
 
-        mask = mask1 + mask2
+        # Define the yellow color range in HSV
+        lower_yellow    = np.array([20, 100, 100])
+        upper_yellow    = np.array([30, 255, 255])
+        yellow_mask     = cv2.inRange(hsv, lower_yellow, upper_yellow)
+
+        mask = red_mask + yellow_mask
 
         cv2.imshow("Mask", mask)
         cv2.waitKey(1)
@@ -73,6 +82,7 @@ class GateDetector:
 
         max_area = 0
         max_area_contour = None
+        detected_color = None
 
         # Loop over the contours to find the gate
         for contour in contours:
@@ -84,6 +94,21 @@ class GateDetector:
             if 0.9 < aspect_ratio < 1.5 and 1000 < area and area > max_area:
                 max_area = area
                 max_area_contour = contour
+
+                # Create a mask for the current contour
+                contour_mask = np.zeros_like(mask)
+                cv2.drawContours(contour_mask, [contour], -1, 255, -1)
+
+                # Calculate the percentage of red and yellow pixels in the contour
+                red_pixels      = cv2.bitwise_and(red_mask, red_mask, mask=contour_mask)
+                yellow_pixels   = cv2.bitwise_and(yellow_mask, yellow_mask, mask=contour_mask)
+
+                red_percentage      = cv2.countNonZero(red_pixels) / cv2.countNonZero(contour_mask)
+                yellow_percentage   = cv2.countNonZero(yellow_pixels) / cv2.countNonZero(contour_mask)
+
+                if red_percentage > yellow_percentage: detected_color = "red"
+                else:                                  detected_color = "yellow"
+
                 rospy.loginfo("Detected rectangular contour")
 
         if max_area_contour is not None:
@@ -113,9 +138,9 @@ class GateDetector:
                     bottom_sorted[-1]  # Bottom-right
                 ]
 
-                return gate_corners, image, max_area
+                return gate_corners, image, max_area, detected_color
 
-        return None, image, 0
+        return None, image, 0, None
 
     def draw_gate(self, image, corners):
 
