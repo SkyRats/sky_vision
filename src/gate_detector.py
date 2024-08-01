@@ -13,9 +13,9 @@ class GateDetector:
         self.bridge = CvBridge()
         self.simulation = simulation
         # self.image_sub = rospy.Subscriber("/sky_vision/front_cam/img_raw", Image, self.image_callback)
-        self.corners_pub = rospy.Publisher("/gate_corners", Polygon, queue_size=10)
-        self.area_pub = rospy.Publisher("/gate_area", Float64, queue_size=10)
-        self.color_pub = rospy.Publisher("/gate_color", String, queue_size=10)
+        self.corners_pub = rospy.Publisher("/gate_corners", Polygon, queue_size=1)
+        self.area_pub = rospy.Publisher("/gate_area", Float64, queue_size=1)
+        self.color_pub = rospy.Publisher("/gate_color", String, queue_size=1)
         self.latest_image = None
         self.timer = rospy.Timer(rospy.Duration(0.5), self.timer_callback)
 
@@ -40,14 +40,26 @@ class GateDetector:
     def detect_gate(self, image, color):
         hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
-        if color == 'red' and not simulation:
+        if color == 'red' and not self.simulation:
 
             # Add your own calibration here using calibrator.py
-            lower_bound = np.array([160, 50, 50])
-            upper_bound = np.array([180, 255, 255])
-            mask = cv2.inRange(hsv, lower_bound, upper_bound)
+            lower_bound = np.array([200, 0, 100])
+            upper_bound = np.array([255, 255, 255])
+            mask = cv2.inRange(hsv, lower_bound, upper_bound)        # Apply Gaussian blur to reduce noise
+            blurred_mask = cv2.GaussianBlur(mask, (15, 15), 0)
 
-        elif color == 'red' and simulation:
+            # Use morphological operations to clean up the mask
+            kernel = np.ones((5, 5), np.uint8)
+            morphed_mask = cv2.morphologyEx(blurred_mask, cv2.MORPH_CLOSE, kernel)
+            morphed_mask = cv2.morphologyEx(morphed_mask, cv2.MORPH_OPEN, kernel)
+
+            # Additional noise reduction
+            morphed_mask = cv2.erode(morphed_mask, kernel, iterations=2)
+            morphed_mask = cv2.dilate(morphed_mask, kernel, iterations=2)
+
+            mask = morphed_mask
+
+        elif color == 'red' and self.simulation:
             # Define the red color range in HSV
             lower_red = np.array([0, 100, 100])
             upper_red = np.array([10, 255, 255])
@@ -65,25 +77,11 @@ class GateDetector:
             upper_bound = np.array([30, 255, 255])
             mask = cv2.inRange(hsv, lower_bound, upper_bound)
 
-        # Apply Gaussian blur to reduce noise
-        blurred_mask = cv2.GaussianBlur(mask, (15, 15), 0)
-
-        # Use morphological operations to clean up the mask
-        kernel = np.ones((5, 5), np.uint8)
-        morphed_mask = cv2.morphologyEx(blurred_mask, cv2.MORPH_CLOSE, kernel)
-        morphed_mask = cv2.morphologyEx(morphed_mask, cv2.MORPH_OPEN, kernel)
-
-        # Additional noise reduction
-        morphed_mask = cv2.erode(morphed_mask, kernel, iterations=2)
-        morphed_mask = cv2.dilate(morphed_mask, kernel, iterations=2)
-
-        mask = morphed_mask
-
         # Find contours
         contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        rospy.loginfo(f"Found {len(contours)} {color} contours")
+        # rospy.loginfo(f"Found {len(contours)} {color} contours")
 
-        min_area = 10000
+        min_area = 6000
         max_area_contour = None
 
         for contour in contours:
@@ -104,34 +102,27 @@ class GateDetector:
                 rospy.loginfo(f"Detected {color} quadrilateral contour")
                 corners = approx.reshape(-1, 2)
 
-                # Filter out corners that are too close to each other
-                min_distance_between_corners = 50  # Define a minimum distance
-                filtered_corners = []
-                for corner in corners:
-                    if all(np.linalg.norm(corner - other_corner) > min_distance_between_corners for other_corner in filtered_corners):
-                        filtered_corners.append(corner)
+               
+                sorted_corners = sorted(corners, key=lambda x: x[1])
 
-                if len(filtered_corners) >= 4:
-                    sorted_corners = sorted(filtered_corners, key=lambda x: x[1])
+                top_corners = sorted_corners[:2]
+                bottom_corners = sorted_corners[2:]
 
-                    top_corners = sorted_corners[:2]
-                    bottom_corners = sorted_corners[2:]
+                top_sorted = sorted(top_corners, key=lambda x: x[0])
+                bottom_sorted = sorted(bottom_corners, key=lambda x: x[0])
 
-                    top_sorted = sorted(top_corners, key=lambda x: x[0])
-                    bottom_sorted = sorted(bottom_corners, key=lambda x: x[0])
+                gate_corners = [
+                    top_sorted[0],
+                    top_sorted[-1],
+                    bottom_sorted[0],
+                    bottom_sorted[-1]
+                ]
 
-                    gate_corners = [
-                        top_sorted[0],
-                        top_sorted[-1],
-                        bottom_sorted[0],
-                        bottom_sorted[-1]
-                    ]
+                for i, corner in enumerate(gate_corners):
+                    cv2.circle(image, tuple(corner), 10, (255, 0, 0), -1)
+                    cv2.putText(image, f'Corner {i+1}', tuple(corner), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
 
-                    for i, corner in enumerate(gate_corners):
-                        cv2.circle(image, tuple(corner), 10, (255, 0, 0), -1)
-                        cv2.putText(image, f'Corner {i+1}', tuple(corner), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
-
-                    return gate_corners, image, max_area
+                return gate_corners, image, max_area
 
         return None, image, 0
 

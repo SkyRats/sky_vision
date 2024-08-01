@@ -1,6 +1,4 @@
 <launch> 
-    <node pkg="sky_vision" name="QR_detector" type="code2ros.py" output="screen">
-    </node>
   <arg name="simulation" default="true" />
   <arg name="index_front" default="-1" />
   <arg name="index_down" default="-1" />
@@ -9,5 +7,9 @@
     <param name="index_front" value="$(arg index_front)" />
     <param name="index_down" value="$(arg index_down)" />
   </node>
-
+      <node pkg="sky_vision" name="code_detector" type="code2ros.py" output="screen">
+    </node>
+      <node pkg="sky_vision" name="gate_detector" type="gate_new.py" output="screen">
+      <param name="simulation" value="$(arg simulation)" />
+    </node>
 </launch>
