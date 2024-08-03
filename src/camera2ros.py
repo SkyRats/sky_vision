@@ -12,7 +12,7 @@ class Camera:
         topicName = f"sky_vision/{cameraName}/image_raw" 
         self.capture = cv2.VideoCapture(index) #openCV camera object. Default camera index is 0
         self.bridge = CvBridge() #bridge type that converts between openCV and ROS images
-        self.publisher = rospy.Publisher(topicName, Image, queue_size=10)
+        self.publisher = rospy.Publisher(topicName, Image, queue_size=1)
 
         rospy.loginfo(f"Trying to open {cameraName}.")
         while(not self.capture.isOpened()):
