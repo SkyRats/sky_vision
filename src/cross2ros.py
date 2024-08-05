@@ -1,19 +1,11 @@
 #!/usr/bin/python3
 
 import rospy
-
 import cv2
-
 from cv_bridge import CvBridge
-
 from sensor_msgs.msg import Image
-
 from std_msgs.msg import String, Int16MultiArray
-
-
 import numpy as np
-
-
 
 class crossDetector():
 
@@ -28,20 +20,19 @@ class crossDetector():
         self.kernel = np.ones((5, 5), np.uint8)
         self.min_area = 6000
 
+        self.lower_red1 = np.array([149, 115, 50])
+        self.upper_red1 = np.array([255, 255, 255])
+        
+
     def process_frame(self, image: np.ndarray):
         
         # PERDAO PELO CÓDIGO NOJENTO PRECISO DORMIR
         og = image
 
-
         hsv_frame = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
         
-
-        lower_red1 = np.array([149, 115, 50])
-        upper_red1 = np.array([255, 255, 255])
-        
         # Create masks for red color
-        image = cv2.inRange(hsv_frame, lower_red1, upper_red1)
+        image = cv2.inRange(hsv_frame, self.lower_red1, self.upper_red1)
         
         # Choose between dynamic threshold or not
         #image = cv2.medianBlur(image, 3)
