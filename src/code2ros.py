@@ -10,24 +10,33 @@ import numpy as np
 
 class codeDetector:
     def __init__(self):
-        self.publisher = rospy.Publisher("/sky_vision/down_cam/code/read", String, queue_size=10)
+        self.publisher_down = rospy.Publisher("/sky_vision/down_cam/code/read", String, queue_size=10)
+        self.publisher_down_center = rospy.Publisher("/sky_vision/down_cam/code/center", String, queue_size=10)
         print("Created down cam publisher")
-        self.publisher = rospy.Publisher("/sky_vision/front_cam/code/read", String, queue_size=10)
+        self.publisher_front = rospy.Publisher("/sky_vision/front_cam/code/read", String, queue_size=10)
         print("Created front cam publisher")
         self.bridge = CvBridge()
         self.code = String()
 
-    def processFrame(self, image: np.ndarray):
+    def processFrame(self, image: np.ndarray, cam):
         threshold = cv2.adaptiveThreshold(image, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, 2)
         for code in pyzbar.decode(threshold):
             code_read = code.data.decode('utf-8')
             self.code.data = code_read
-            self.publisher.publish(self.code)
-            print("Found QR Code: %s" % code_read)
+            if cam == "down":
+                self.publisher_down.publish(self.code)
+                print("Down-Cam: Found QR Code: %s" % code_read)
+            else:
+                self.publisher_front.publish(self.code)
+                print("Front-Cam: Found QR Code: %s" % code_read)
 
-    def callback(self, message):
+    def callback_Down(self, message):
         frame = cv2.cvtColor(self.bridge.imgmsg_to_cv2(message, "bgr8"), cv2.COLOR_BGR2GRAY)
-        self.processFrame(frame)
+        self.processFrame(frame, "down")
+
+    def callback_Front(self, message):
+        frame = cv2.cvtColor(self.bridge.imgmsg_to_cv2(message, "bgr8"), cv2.COLOR_BGR2GRAY)
+        self.processFrame(frame, "front")
 
 def main():
     rospy.init_node("code_detector")
@@ -41,11 +50,11 @@ def main():
             topics = rospy.get_published_topics()
             topic_list = [topic for topic, _ in topics]
             if "/sky_vision/down_cam/img_raw" in topic_list:
-                rospy.Subscriber("/sky_vision/down_cam/img_raw", Image, detector.callback)
+                rospy.Subscriber("/sky_vision/down_cam/img_raw", Image, detector.callback_Down)
                 subscribed = True
                 print("Subscribed to /sky_vision/down_cam/img_raw")
             if "/sky_vision/front_cam/img_raw" in topic_list:
-                rospy.Subscriber("/sky_vision/front_cam/img_raw", Image, detector.callback)
+                rospy.Subscriber("/sky_vision/front_cam/img_raw", Image, detector.callback_Front)
                 subscribed = True
                 print("Subscribed to /sky_vision/front_cam/img_raw")
             elif "/sky_vision/generic_cam/img_raw" in topic_list:
