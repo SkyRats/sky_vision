@@ -12,4 +12,6 @@
       <node pkg="sky_vision" name="gate_detector" type="gate_new.py" output="screen">
       <param name="simulation" value="$(arg simulation)" />
     </node>
+      <node pkg="sky_vision" name="blue_detector" type="blue2ros.py" output="screen">
+    </node>
 </launch>
