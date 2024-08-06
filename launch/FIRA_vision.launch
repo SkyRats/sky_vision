@@ -14,4 +14,6 @@
     </node>
       <node pkg="sky_vision" name="blue_detector" type="blue2ros.py" output="screen">
     </node>
+      <node pkg="sky_vision" name="cross_detector" type="cross2ros.py" output="screen">
+    </node>
 </launch>
