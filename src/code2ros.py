@@ -4,39 +4,39 @@ import rospy
 import cv2
 from cv_bridge import CvBridge
 from sensor_msgs.msg import Image
-from std_msgs.msg import String
+from std_msgs.msg import String, Int16MultiArray
 import pyzbar.pyzbar as pyzbar
 import numpy as np
 
 class codeDetector:
     def __init__(self):
-        self.publisher_down = rospy.Publisher("/sky_vision/down_cam/code/read", String, queue_size=10)
-        self.publisher_down_center = rospy.Publisher("/sky_vision/down_cam/code/center", String, queue_size=10)
-        print("Created down cam publisher")
-        self.publisher_front = rospy.Publisher("/sky_vision/front_cam/code/read", String, queue_size=10)
-        print("Created front cam publisher")
+        self.publisher_read = rospy.Publisher("/sky_vision/code/read", String, queue_size=10)
+        self.publisher_center = rospy.Publisher("/sky_vision/code/center", Int16MultiArray, queue_size=10)
+        print("Created publisher")
         self.bridge = CvBridge()
         self.code = String()
+        self.center = Int16MultiArray()
 
-    def processFrame(self, image: np.ndarray, cam):
+    def find_center(self, rect):
+        x, y, width, height = rect[0], rect[1], rect[2], rect[3]
+        return (int(x + width/2), int(y + height/2))
+
+    def process_frame(self, image: np.ndarray):
         threshold = cv2.adaptiveThreshold(image, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, 2)
+
         for code in pyzbar.decode(threshold):
             code_read = code.data.decode('utf-8')
             self.code.data = code_read
-            if cam == "down":
-                self.publisher_down.publish(self.code)
-                print("Down-Cam: Found QR Code: %s" % code_read)
-            else:
-                self.publisher_front.publish(self.code)
-                print("Front-Cam: Found QR Code: %s" % code_read)
 
-    def callback_Down(self, message):
-        frame = cv2.cvtColor(self.bridge.imgmsg_to_cv2(message, "bgr8"), cv2.COLOR_BGR2GRAY)
-        self.processFrame(frame, "down")
+            self.center.data = self.find_center(code.rect)
 
-    def callback_Front(self, message):
+            self.publisher_read.publish(self.code)
+            self.publisher_center.publish(self.center)
+            print("Found QR Code: %s" % code_read)
+
+    def callback(self, message):
         frame = cv2.cvtColor(self.bridge.imgmsg_to_cv2(message, "bgr8"), cv2.COLOR_BGR2GRAY)
-        self.processFrame(frame, "front")
+        self.process_frame(frame)
 
 def main():
     rospy.init_node("code_detector")
@@ -46,17 +46,14 @@ def main():
     subscribed = False
 
     while not rospy.is_shutdown():
+    
         if not subscribed:
             topics = rospy.get_published_topics()
             topic_list = [topic for topic, _ in topics]
             if "/sky_vision/down_cam/img_raw" in topic_list:
-                rospy.Subscriber("/sky_vision/down_cam/img_raw", Image, detector.callback_Down)
+                rospy.Subscriber("/sky_vision/down_cam/img_raw", Image, detector.callback)
                 subscribed = True
                 print("Subscribed to /sky_vision/down_cam/img_raw")
-            if "/sky_vision/front_cam/img_raw" in topic_list:
-                rospy.Subscriber("/sky_vision/front_cam/img_raw", Image, detector.callback_Front)
-                subscribed = True
-                print("Subscribed to /sky_vision/front_cam/img_raw")
             elif "/sky_vision/generic_cam/img_raw" in topic_list:
                 rospy.Subscriber("/sky_vision/generic_cam/img_raw", Image, detector.callback)
                 subscribed = True
