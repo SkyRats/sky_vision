@@ -43,7 +43,7 @@ class GateDetector:
         if color == 'red' and not self.simulation:
 
             # Add your own calibration here using calibrator.py
-            lower_bound = np.array([200, 0, 100])
+            lower_bound = np.array([170, 144, 120])
             upper_bound = np.array([255, 255, 255])
             mask = cv2.inRange(hsv, lower_bound, upper_bound)        # Apply Gaussian blur to reduce noise
             blurred_mask = cv2.GaussianBlur(mask, (15, 15), 0)
@@ -73,8 +73,8 @@ class GateDetector:
 
         elif color == 'yellow':
             
-            lower_bound = np.array([20, 100, 100])
-            upper_bound = np.array([30, 255, 255])
+            lower_bound = np.array([30, 96, 130])
+            upper_bound = np.array([33, 255, 255])
             mask = cv2.inRange(hsv, lower_bound, upper_bound)
 
         # Find contours
