@@ -34,8 +34,8 @@ class GateDetector:
             
             if red_final_image is not None and yellow_final_image is not None:
                 combined_image = cv2.addWeighted(red_final_image, 0.5, yellow_final_image, 0.5, 0)
-                cv2.imshow("Gate Detection", combined_image)
-                cv2.waitKey(1)
+                #cv2.imshow("Gate Detection", combined_image)
+                #cv2.waitKey(1)
 
     def detect_gate(self, image, color):
         hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
@@ -145,8 +145,8 @@ class GateDetector:
         self.area_pub.publish(area_msg)
         rospy.loginfo(f"Published area: {area}")
 
-        cv2.imshow(f"{color.capitalize()} Gate Detection", final_image)
-        cv2.waitKey(1)
+        #cv2.imshow(f"{color.capitalize()} Gate Detection", final_image)
+        #cv2.waitKey(1)
 
     def draw_gate(self, image, corners):
         for i in range(len(corners)):
