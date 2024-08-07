@@ -80,7 +80,8 @@ class Camera:
         try:
             check, cv_image = self.capture.read()
             if check:
-                self.publisher.publish(self.bridge.cv2_to_imgmsg(cv_image, "bgr8"))
+                resized_image = cv2.resize(cv_image, (640,480))
+                self.publisher.publish(self.bridge.cv2_to_imgmsg(resized_image, "bgr8"))
             else:
                 rospy.logerr(f"Couldn't read the frame from {self.cam_name}.")
         except CvBridgeError as e:
