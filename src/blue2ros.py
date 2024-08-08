@@ -24,8 +24,8 @@ class HDetector:
         hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
         
         # Define blue color range
-        lower_blue = np.array([100, 150, 0])
-        upper_blue = np.array([140, 255, 255])
+        lower_blue = np.array([99, 82, 115)
+        upper_blue = np.array([112,249, 160])
         
         # Create a mask for blue color
         blue_mask = cv2.inRange(hsv_image, lower_blue, upper_blue)
