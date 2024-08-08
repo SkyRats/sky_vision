@@ -10,8 +10,8 @@ import numpy as np
 
 class codeDetector:
     def __init__(self):
-        self.publisher_read = rospy.Publisher("/sky_vision/code/read", String, queue_size=10)
-        self.publisher_center = rospy.Publisher("/sky_vision/code/center", Int16MultiArray, queue_size=10)
+        self.publisher_read = rospy.Publisher("/sky_vision/code/read", String, queue_size=1)
+        self.publisher_center = rospy.Publisher("/sky_vision/code/center", Int16MultiArray, queue_size=1)
         print("Created publisher")
         self.bridge = CvBridge()
         self.code = String()
@@ -24,15 +24,29 @@ class codeDetector:
     def process_frame(self, image: np.ndarray):
         threshold = cv2.adaptiveThreshold(image, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, 2)
 
+        height, width = image.shape
+        image_center = (width // 2, height // 2)
+
+        closest_code = None
+        min_distance = float('inf')
+
         for code in pyzbar.decode(threshold):
-            code_read = code.data.decode('utf-8')
+            code_center = self.find_center(code.rect)
+            distance = np.linalg.norm(np.array(image_center) - np.array(code_center))
+
+            if distance < min_distance:
+                min_distance = distance
+                closest_code = code
+
+        if closest_code:
+            code_read = closest_code.data.decode('utf-8')
             self.code.data = code_read
 
-            self.center.data = self.find_center(code.rect)
+            self.center.data = self.find_center(closest_code.rect)
 
             self.publisher_read.publish(self.code)
             self.publisher_center.publish(self.center)
-            print("Found QR Code: %s" % code_read)
+            print(f"Found centralized QR Code: {code_read}")
 
     def callback(self, message):
         frame = cv2.cvtColor(self.bridge.imgmsg_to_cv2(message, "bgr8"), cv2.COLOR_BGR2GRAY)
