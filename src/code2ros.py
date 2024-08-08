@@ -32,29 +32,36 @@ class codeDetector:
         height, width = image.shape
         image_center = (width // 2, height // 2)
 
-        closest_code = None
-        min_distance = float('inf')
+        if self.camera_name == "down_cam":
+            closest_code = None
+            min_distance = float('inf')
 
-        for code in pyzbar.decode(threshold):
-            code_center = self.find_center(code.rect)
-            distance = np.linalg.norm(np.array(image_center) - np.array(code_center))
+            for code in pyzbar.decode(threshold):
+                code_center = self.find_center(code.rect)
+                distance = np.linalg.norm(np.array(image_center) - np.array(code_center))
 
-            if distance < min_distance:
-                min_distance = distance
-                closest_code = code
+                if distance < min_distance:
+                    min_distance = distance
+                    closest_code = code
 
-        if closest_code:
-            code_read = closest_code.data.decode('utf-8')
-            self.code.data = code_read
-            
-            if self.camera_name == "down_cam":
+            if closest_code:
+                code_read = closest_code.data.decode('utf-8')
+                self.code.data = code_read
+                
                 self.center.data = self.find_center(closest_code.rect)
                 self.publisher_center.publish(self.center)
                 self.publisher_down_cam_read.publish(self.code)
                 print(f"Published to /sky_vision/code/read: {code_read}")
 
-            self.publisher_read.publish(self.code)
-            print(f"Found centralized QR Code on {self.camera_name}: {code_read}")
+                self.publisher_read.publish(self.code)
+                print(f"Found centralized QR Code on {self.camera_name}: {code_read}")
+
+        elif self.camera_name == "front_cam":
+            for code in pyzbar.decode(threshold):
+                code_read = code.data.decode('utf-8')
+                self.code.data = code_read
+                self.publisher_read.publish(self.code)
+                print(f"Found QR Code on {self.camera_name}: {code_read}")
 
     def callback(self, message):
         frame = cv2.cvtColor(self.bridge.imgmsg_to_cv2(message, "bgr8"), cv2.COLOR_BGR2GRAY)
