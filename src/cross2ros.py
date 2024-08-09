@@ -20,8 +20,8 @@ class crossDetector():
         self.kernel = np.ones((5, 5), np.uint8)
         self.min_area = 6000
 
-        self.lower_red1 = np.array([149, 115, 50])
-        self.upper_red1 = np.array([255, 255, 255])
+        self.lower_red1 = np.array([172, 140, 122])
+        self.upper_red1 = np.array([205, 230, 255])
         
 
     def process_frame(self, image: np.ndarray):
