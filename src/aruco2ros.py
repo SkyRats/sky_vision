@@ -36,6 +36,9 @@ class ArucoROS:
         self.newimg_pub = rospy.Publisher('/sky_vision/down_cam/img_result', Image, queue_size=10)
         self.cam = Image()
 
+        #Publisher for aruco id
+        self.id_pub = rospy.Publisher('/sky_vision/down_cam/aruco/id', int, queue_size=1)
+
         # Post detection pose info publisher
         self.pose_pub = rospy.Publisher('/sky_vision/down_cam/aruco/pose', Point, queue_size=1)
         self.pose = Point()
@@ -96,6 +99,7 @@ class ArucoROS:
                 # Publish aruco pose info
                 self.pose_pub.publish(self.pose)
                 self.angle_pub.publish(self.angle)
+                self.id_pub.publish(payload)
         
         elif self.type == "arucrooked":
             # Bridge de ROS para CV
@@ -127,6 +131,7 @@ class ArucoROS:
                 # Publish aruco pose info
                 self.pose_pub.publish(self.pose)
                 self.angle_pub.publish(self.angle)
+                self.id_pub.publish(payload)
 
 # Init the aruco detector package
 package = ArucoROS()
