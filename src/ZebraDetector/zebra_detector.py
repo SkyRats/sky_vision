@@ -1,14 +1,12 @@
 from ultralytics import YOLO
 
-# Load a YOLOv8n PyTorch model
-model = YOLO("../best.pt")
+model = YOLO("best.pt")
 
-# Export the model to NCNN format
-model.export(format="ncnn")  # creates 'best_ncnn_model'
+model.export(format="ncnn", imgsz=640)
 
-# Load the exported NCNN model
 ncnn_model = YOLO("best_ncnn_model")
 
-# Run inference
-results = ncnn_model("zebra1.jpg")
+results = ncnn_model(source="zebracima2.jpg", save=True)
+# pode mexer no valor do conf para arrumar a precisão. conf=valor
+
 
