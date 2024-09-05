@@ -3,32 +3,45 @@
 import rospy
 from cv_bridge import CvBridge
 from sensor_msgs.msg import Image
-from std_msgs.msg import String
+from std_msgs.msg import String, Int32
 from geometry_msgs.msg import Point, Vector3
-
-from cam_config import CAMERA_MATRIX, DISTORTION_MATRIX, CAMERA_FOV, CAMERA_RES
 
 from sky_detectors import ArucoDetector
 
-CAMERA_INFO = [CAMERA_MATRIX, DISTORTION_MATRIX, CAMERA_RES, CAMERA_FOV]
-
-ARUCO_TYPE = 5 # (5X5, 4X4, etc...)
-
-TARGET_SIZE = 15 # 50x50cm square
-
-
 class ArucoROS:
     def __init__(self):
+
+        # ROS node
+        rospy.init_node('sky_vision_aruco', anonymous=False)
+        
+        # Load different configs based on competition argument
+        competition = rospy.get_param('~competition', 'indoor')  # Default is 'indoor'
+        simulation = rospy.get_param('~simulation', False)  # Default is False
+
+        if simulation:
+            from cam_config_simulation import CAMERA_MATRIX, DISTORTION_MATRIX, CAMERA_FOV, CAMERA_RES
+            from simulation_aruco import MARKER_SIZE, TYPE
+            print("USING SIMULATION CONFIG")
+        elif competition == 'outdoor':
+            from cam_config_runcam import CAMERA_MATRIX, DISTORTION_MATRIX, CAMERA_FOV, CAMERA_RES
+            from outdoor_aruco import MARKER_SIZE, TYPE
+            print("USING OUTDOOR CONFIG")
+        else:
+            from cam_config import CAMERA_MATRIX, DISTORTION_MATRIX, CAMERA_FOV, CAMERA_RES
+            print("USING INDOOR CONFIG")
+            MARKER_SIZE = 15  # cm for indoor
+            TYPE = 5        # ArUco type 5 for indoor
+
+        CAMERA_INFO = [CAMERA_MATRIX, DISTORTION_MATRIX, CAMERA_RES, CAMERA_FOV]
+
+        ARUCO_TYPE = TYPE  # (5x5, 4x4, etc...)
+        TARGET_SIZE = MARKER_SIZE  # Target size in cm
 
         # Create the aruco detector object
         self.detector = ArucoDetector(ARUCO_TYPE, TARGET_SIZE, CAMERA_INFO)
 
         # State of the detection
         self.type = ""
-
-        # ROS node
-        rospy.init_node('sky_vision_aruco', anonymous=False)
-
         # Bridge ros-opencv
         self.bridge_object = CvBridge()
 
@@ -37,7 +50,7 @@ class ArucoROS:
         self.cam = Image()
 
         #Publisher for aruco id
-        self.id_pub = rospy.Publisher('/sky_vision/down_cam/aruco/id', int, queue_size=1)
+        self.id_pub = rospy.Publisher('/sky_vision/down_cam/aruco/id', Int32, queue_size=1)
 
         # Post detection pose info publisher
         self.pose_pub = rospy.Publisher('/sky_vision/down_cam/aruco/pose', Point, queue_size=1)

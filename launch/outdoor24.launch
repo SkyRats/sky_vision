@@ -1,0 +1,17 @@
+<launch> 
+  <arg name="simulation" default="false" />
+  <arg name="index_front" default="-1" />
+  <arg name="index_down" default="-1" />
+  <arg name="competition" default="" />
+  <node pkg="sky_vision" type="global_camera2ros.py" name="sky_vision_camera_node" output="screen">
+    <param name="simulation" value="$(arg simulation)" />
+    <param name="index_front" value="$(arg index_front)" />
+    <param name="index_down" value="$(arg index_down)" />
+  </node>
+      <node pkg="sky_vision" name="aruco_detector" type="aruco2ros.py" output="screen">
+        <param name="competition" value="$(arg competition)" />
+        <param name="simulation" value="$(arg simulation)" />
+
+
+    </node>
+</launch>
