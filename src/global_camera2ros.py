@@ -17,8 +17,8 @@ class VideoCapture:
                 self.front_cam_sub = rospy.Subscriber('/webcam_front/image_raw_front', Image, self.front_cam_callback)
             if self.topic_exists('/webcam_down/image_raw_down'):
                 self.down_cam_sub = rospy.Subscriber('/webcam_down/image_raw_down', Image, self.down_cam_callback)
-            self.front_cam_pub = rospy.Publisher('/sky_vision/front_cam/img_raw', Image, queue_size=10)
-            self.down_cam_pub = rospy.Publisher('/sky_vision/down_cam/img_raw', Image, queue_size=10)
+            self.front_cam_pub = rospy.Publisher('/sky_vision/front_cam/img_raw', Image, queue_size=1)
+            self.down_cam_pub = rospy.Publisher('/sky_vision/down_cam/img_raw', Image, queue_size=1)
         else:
             self.cameras = []
             if index_down == -1 and index_front == -1:
@@ -65,7 +65,7 @@ class Camera:
         self.cam_name = cam_name
         self.capture = cv2.VideoCapture(index)
         self.bridge = CvBridge()
-        self.publisher = rospy.Publisher(f'/sky_vision/{cam_name}/img_raw', Image, queue_size=10)
+        self.publisher = rospy.Publisher(f'/sky_vision/{cam_name}/img_raw', Image, queue_size=1)
 
         rospy.loginfo(f"Trying to open {cam_name}.")
         while not self.capture.isOpened():
