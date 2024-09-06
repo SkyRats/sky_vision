@@ -11,7 +11,8 @@
       <node pkg="sky_vision" name="aruco_detector" type="aruco2ros.py" output="screen">
         <param name="competition" value="$(arg competition)" />
         <param name="simulation" value="$(arg simulation)" />
-
-
     </node>
+  <node pkg="sky_vision" type="yolo_service.py" name="yolo_node" output="screen">
+    
+  </node>
 </launch>

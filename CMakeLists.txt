@@ -11,7 +11,9 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  sensor_msgs
   message_generation
+  
 )
 
 ## System dependencies are found with CMake's conventions
@@ -58,6 +60,7 @@ find_package(catkin REQUIRED COMPONENTS
  add_service_files(
    FILES
    pad.srv
+   YOLOservice.srv
  )
 
 ## Generate actions in the 'action' folder
@@ -68,10 +71,11 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+  sensor_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -108,6 +112,9 @@ catkin_package(
 #  CATKIN_DEPENDS roscpp std_msgs
 #  DEPENDS system_lib
 )
+# catkin_package(
+#     CATKIN_DEPENDS rospy message_runtime  
+# )
 
 ###########
 ## Build ##
@@ -120,9 +127,14 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-catkin_install_python(PROGRAMS src/global_camera2ros.py
+catkin_install_python(PROGRAMS src/global_camera2ros.py src/ZebraDetector/yolo_service.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
+
+# install(PROGRAMS 
+#   scripts/* 
+#   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+# )
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
