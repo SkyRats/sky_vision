@@ -1,4 +1,9 @@
+# Request: Just the image
 sensor_msgs/Image image
-float32 confidence
 ---
+# Response: success flag, number of objects, and their confidences
 bool success
+int32 num_objects
+float32[] confidences
+float32[] bbox_centers_y
+float32[] bbox_centers_x

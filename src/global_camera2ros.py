@@ -80,7 +80,16 @@ class Camera:
         try:
             check, cv_image = self.capture.read()
             if check:
-                resized_image = cv2.resize(cv_image, (640,480))
+                # Get the original dimensions
+                (h, w) = cv_image.shape[:2]
+
+                # Compute the new dimensions maintaining the aspect ratio
+                new_width = 640
+                new_height = int((new_width / w) * h)
+
+                # Resize the image
+                resized_image = cv2.resize(cv_image, (new_width, new_height))
+
                 self.publisher.publish(self.bridge.cv2_to_imgmsg(resized_image, "bgr8"))
             else:
                 rospy.logerr(f"Couldn't read the frame from {self.cam_name}.")
@@ -93,8 +102,8 @@ class Camera:
 if __name__ == '__main__':
     rospy.init_node('sky_vision_camera_node', anonymous=False)
     simulation = rospy.get_param('~simulation', True)
-    index_front = rospy.get_param('~index_front', 1)
-    index_down = rospy.get_param('~index_down', 0)
+    index_front = rospy.get_param('~index_front', -1)
+    index_down = rospy.get_param('~index_down', -1)
     vc = VideoCapture(simulation, index_front, index_down)
 
     rate = rospy.Rate(10)  # Adjust the rate as needed
