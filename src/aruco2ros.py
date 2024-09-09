@@ -5,18 +5,18 @@ from cv_bridge import CvBridge
 from sensor_msgs.msg import Image
 from std_msgs.msg import String, Int32
 from geometry_msgs.msg import Point, Vector3
-
 from sky_detectors import ArucoDetector
 
 class ArucoROS:
     def __init__(self):
-
         # ROS node
         rospy.init_node('sky_vision_aruco', anonymous=False)
         
         # Load different configs based on competition argument
         competition = rospy.get_param('~competition', 'indoor')  # Default is 'indoor'
         simulation = rospy.get_param('~simulation', False)  # Default is False
+        self.rate_value = int(rospy.get_param('~rate', 10))  # Default rate is 10 Hz
+        self.rate = rospy.Rate(self.rate_value)  # Create Rate object
 
         if simulation:
             from cam_config_simulation import CAMERA_MATRIX, DISTORTION_MATRIX, CAMERA_FOV, CAMERA_RES
@@ -61,7 +61,7 @@ class ArucoROS:
 
         try:
             print("\nCreating aruco subscribers...")
-            rospy.Subscriber('/sky_vision/down_cam/img_raw', Image, self.camera_callback)
+            rospy.Subscriber('/sky_vision/down_cam/img_raw', Image, self.camera_callback, queue_size=1, buff_size=2**24)
             rospy.Subscriber('/sky_vision/down_cam/type', String, self.type_callback)
             print("Aruco Subscribers up!")
         except:
@@ -71,18 +71,13 @@ class ArucoROS:
 
         rospy.spin()
 
-
     def type_callback(self, message):
-
         # Get current state
         self.type = message.data
-    
 
     #-- Get new frame
     def camera_callback(self, message):
-
         if self.type == "aruco":
-
             # Bridge de ROS para CV
             cam = self.bridge_object.imgmsg_to_cv2(message, "bgr8")
             self.frame = cam
@@ -91,7 +86,6 @@ class ArucoROS:
             closest_target = self.detector.find_closest_aruco(self.frame)
 
             if closest_target is not None and len(closest_target) > 0:
-                
                 # Unpack results
                 x, y, z, x_ang, y_ang, payload, draw_img = closest_target
 
@@ -113,6 +107,9 @@ class ArucoROS:
                 self.pose_pub.publish(self.pose)
                 self.angle_pub.publish(self.angle)
                 self.id_pub.publish(payload)
+
+                # Sleep to publish at the correct rate
+                self.rate.sleep()
         
         elif self.type == "arucrooked":
             # Bridge de ROS para CV
@@ -123,7 +120,6 @@ class ArucoROS:
             closest_target = self.detector.find_closest_arucrooked(self.frame)
 
             if closest_target is not None and len(closest_target) > 0:
-                
                 # Unpack results
                 x, y, z, x_ang, y_ang, payload, draw_img = closest_target
 
@@ -145,6 +141,9 @@ class ArucoROS:
                 self.pose_pub.publish(self.pose)
                 self.angle_pub.publish(self.angle)
                 self.id_pub.publish(payload)
+
+                # Sleep to publish at the correct rate
+                self.rate.sleep()
 
 # Init the aruco detector package
 package = ArucoROS()

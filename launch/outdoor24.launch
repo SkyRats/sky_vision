@@ -3,6 +3,7 @@
   <arg name="index_front" default="-1" />
   <arg name="index_down" default="-1" />
   <arg name="competition" default="" />
+  <arg name="rate" default="10" />
   <node pkg="sky_vision" type="global_camera2ros.py" name="sky_vision_camera_node" output="screen">
     <param name="simulation" value="$(arg simulation)" />
     <param name="index_front" value="$(arg index_front)" />
@@ -11,6 +12,7 @@
       <node pkg="sky_vision" name="aruco_detector" type="aruco2ros.py" output="screen">
         <param name="competition" value="$(arg competition)" />
         <param name="simulation" value="$(arg simulation)" />
+        <param name="rate" value="$(arg rate)" />
     </node>
   <node pkg="sky_vision" type="yolo_service.py" name="yolo_node" output="screen">
     
