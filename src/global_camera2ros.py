@@ -2,6 +2,7 @@
 
 import rospy
 import cv2
+from std_msgs.msg import Bool
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 
@@ -9,6 +10,12 @@ class VideoCapture:
     def __init__(self, simulation, index_front, index_down):
         self.simulation = simulation
         self.bridge = CvBridge()
+        self.enable_capture_down = True
+        self.enable_capture_front = True
+
+        #subscribers and publishers for simulation
+        rospy.Subscriber('/sky_vision/down_cam/capture', Bool, self.capture_down_callback)
+        rospy.Subscriber('/sky_vision/front_cam/capture', Bool, self.capture_front_callback)
 
         if self.simulation:
             self.front_cam_sub = None
@@ -30,6 +37,12 @@ class VideoCapture:
                 if index_down != -1 and self.camera_exists(index_down):
                     self.cameras.append(Camera(index_down, 'down_cam'))
 
+    def capture_down_callback(self, msg):
+        self.enable_capture_down = msg.data
+    
+    def capture_front_callback(self, msg):
+        self.enable_capture_front = msg.data
+       
     def topic_exists(self, topic_name):
         topics = rospy.get_published_topics()
         for topic, _ in topics:
@@ -57,8 +70,12 @@ class VideoCapture:
             rospy.logerr(f"Error in down cam callback: {e}")
 
     def capture(self):
-        for camera in self.cameras:
-            camera.process_frame()
+        for i, camera in enumerate(self.cameras):
+            if len(self.cameras) < 2: # if generic -> normal process, else check if the camera is enabled
+                camera.process_frame()
+            else:
+                if not i and self.enable_capture_front: camera.process_frame()
+                elif i and self.enable_capture_down: camera.process_frame()
 
 class Camera:
     def __init__(self, index, cam_name):
