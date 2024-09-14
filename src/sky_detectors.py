@@ -25,6 +25,7 @@ class ArucoDetector:
       dictionary = aruco.getPredefinedDictionary(lib)
       parameters =  aruco.DetectorParameters()
       self.detector = aruco.ArucoDetector(dictionary, parameters)
+      self.min_arc = 90
 
       self.camera_matrix = camera_info[0]
       self.dist_coeff = camera_info[1]
@@ -93,7 +94,7 @@ class ArucoDetector:
                marker_points = corners[0] # Vector with 4 points (x, y) for the corners
 
                # Check for false positives
-               if cv2.arcLength(np.array([marker_points]), True) > 180:
+               if cv2.arcLength(np.array([marker_points]), True) > self.min_arc:
                   print(cv2.arcLength(np.array([marker_points]), True))
 
                   # Draw points in image
@@ -143,7 +144,7 @@ class ArucoDetector:
                marker_points = corners[0] # Vector with 4 points (x, y) for the corners
 
                # Check for false positives
-               if cv2.arcLength(np.array([marker_points]), True) > 180:
+               if cv2.arcLength(np.array([marker_points]), True) > self.min_arc:
                   print(cv2.arcLength(np.array([marker_points]), True))
 
                   # Draw points in image
