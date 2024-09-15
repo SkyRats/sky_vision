@@ -1,10 +1,12 @@
+#!/usr/bin/env python3
+
 import cv2
 import numpy as np
 import math
 import rospy
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image
-from std_msgs.msg import Float32
+from std_msgs.msg import Bool
 
 #taken from https://stackoverflow.com/questions/43664328/remove-similar-lines-provided-by-hough-transform
 
@@ -45,9 +47,10 @@ def unify_lines(lines, rho_threshold=120, theta_threshold=np.pi/180*6):
 class lineFollower:
     def __init__(self) -> None:
         
-        self.publisher = rospy.Publisher("/sky_vision/down_cam/horizontal_line/angle", Float32)
+        self.publisher = rospy.Publisher("/sky_vision/down_cam/horizontal_line/angle", Bool)
         self.cvBridge = CvBridge()
-        self.angle = Float32()
+        #self.angle = Float32()
+        self.has_horizontal_line = Bool(False)
         self.lower_mask = np.array([80, 50, 50])
         self.upper_mask = np.array([105, 255, 255])
         self.kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (4, 15))
@@ -60,14 +63,16 @@ class lineFollower:
         lines = self.find_lines(frame)
         if lines is not None:
             for line in lines:
-                print(line)
+                #print(line)
                 theta = line[0][1]
-                print(theta)
-                if (theta > (np.pi/2)*0.8) and (theta < (np.pi/2)*1.2):
-                    print("linha horizontal mano brother") 
-                    self.angle.data = theta
-                    self.publisher.publish(self.angle)
+                #print(theta)
+                if (theta > (np.pi/2)*0.9) and (theta < (np.pi/2)*1.1):
+                    rospy.loginfo("linha horizontal mano brother") 
+                    rospy.loginfo(theta)
+                    self.has_horizontal_line.data = True
                     break
+
+        self.publisher.publish(self.has_horizontal_line)    
 
     def filter(self, frame):
 
@@ -84,7 +89,7 @@ class lineFollower:
     def find_lines(self, frame):
         
         filtered_image = self.filter(frame)
-        cv2.imshow("Filtered", filtered_image)
+        #cv2.imshow("Filtered", filtered_image)
         gray = cv2.cvtColor(filtered_image, cv2.COLOR_BGR2GRAY)
         canny = cv2.Canny(gray, 50, 200, None, 3)
 
@@ -97,12 +102,8 @@ class lineFollower:
             if len(lines) > 1: lines = self.merge_lines(lines)
 
             for i in range(0, len(lines)):
-                #print("line:")
-                #print(lines[i])
                 rho = lines[i][0][0]
                 theta = lines[i][0][1]
-                #print("rho", rho)
-                #print("theta", theta)
                 a = math.cos(theta)
                 b = math.sin(theta)
                 x0 = a * rho
