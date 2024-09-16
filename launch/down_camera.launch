@@ -1,0 +1,8 @@
+<launch>
+  <arg name="simulation" default="False" />
+  <arg name="index_down" default="-1" />
+  <node pkg="sky_vision" type="down_camera2ros.py" name="sky_vision_camera_node" output="screen">
+    <param name="simulation" value="$(arg simulation)" />
+    <param name="index_down" value="$(arg index_down)" />
+  </node>
+</launch>
