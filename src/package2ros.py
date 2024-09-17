@@ -25,8 +25,8 @@ class PackageDetector:
         # gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         mask = cv2.inRange(hsv, self.lower_mask, self.upper_mask)
-        mask = cv2.erode(mask, self.kernel, iterations=1)
         mask = cv2.dilate(mask, self.kernel, iterations=1)
+        mask = cv2.erode(mask, self.kernel, iterations=1)
         
         return mask
         
