@@ -8,15 +8,15 @@ import cv2
 from sky_vision.srv import YOLOservice, YOLOserviceResponse  # Import the service message
 
 # Expand the '~' to the full home directory path for the model
-model_path = os.path.expanduser('~/sky_ws/src/sky_vision/src/ZebraDetector/best_ncnn_model')
+model_path = os.path.expanduser('~/sky_ws/src/sky_vision/src/ZebraDetector/bristol_ncnn_model')
 
-# YOLO model initialization
+# YOLO model initialization\
 model = YOLO(model_path)
 
 # Convert ROS Image message to OpenCV format
 bridge = CvBridge()
 
-def crop_and_resize(image, target_size=(640, 640)):
+def crop_resize_convert(image, target_size=(640, 640), color_code = cv2.COLOR_BGR2RGB):
     """Crops the image to a square from the center and resizes it to target_size."""
     h, w, _ = image.shape
 
@@ -33,6 +33,11 @@ def crop_and_resize(image, target_size=(640, 640)):
     # Resize to target size (640x640)
     resized_image = cv2.resize(cropped_image, target_size)
 
+    # Convert to RGBss
+    if color_code != None:
+        rgb_image = cv2.cvtColor(resized_image, color_code)
+        return rgb_image
+    
     return resized_image
 
 def handle_yolo_detection(req):
@@ -44,7 +49,7 @@ def handle_yolo_detection(req):
         original_height, original_width, _ = cv_image.shape
         
         # Crop the image to a square and resize to 640x640
-        resized_image = crop_and_resize(cv_image, target_size=(640, 640))
+        resized_image = crop_resize_convert(cv_image, target_size=(640, 640), color_code=cv2.COLOR_BGR2RGB)
 
         # Perform YOLO detection
         results = model(resized_image)
@@ -81,7 +86,7 @@ def handle_yolo_detection(req):
                 cv2.imwrite(save_path, cv_image)
                 rospy.loginfo(f"Annotated image saved to {save_path}")
 
-                rospy.loginfo(f"YOLO detection completed. {num_objects} objects detected.")
+                rospy.loginfo(f"YOLO detection completed. {num_objects} objects detected. :zebra:")
                 
                 # Return the response with the number of detected objects and their confidences
                 return YOLOserviceResponse(
