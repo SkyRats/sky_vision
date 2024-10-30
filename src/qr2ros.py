@@ -23,6 +23,9 @@ class QRcodeDetector():
         self.qrcodecenter_pub = rospy.Publisher('/sky_vision/down_cam/qrcode_center', Int16MultiArray, queue_size=10)
         self.center = Int16MultiArray()
         
+        # bd -> bounding box
+        self.qrcodebd_pub = rospy.Publisher('/sky_vision/down_cam/qrcode_bd', Int16MultiArray, queue_size = 10)
+        self.qrcode_bd = Int16MultiArray()
         # State of the detection
         self.type = "qrcode"       
 
@@ -75,6 +78,7 @@ class QRcodeDetector():
                 self.code.data = qrcode_read[0]
                 
                 bounding_box = qrcode.rect
+                self.qrcode_bd.data = bounding_box
                 self.center.data = (int(bounding_box[0] + bounding_box[2]/2),
                                     int(bounding_box[1] + bounding_box[3]/2))
                 
@@ -82,6 +86,7 @@ class QRcodeDetector():
                 
                 self.newqrcode_pub.publish(self.code)
                 self.qrcodecenter_pub.publish(self.center)
+                self.qrcodebd_pub.publish(self.qrcode_bd)
                 
             
 package = QRcodeDetector()
