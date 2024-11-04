@@ -54,6 +54,8 @@ class ArucoDetector:
                               [marker_size / 2, -marker_size / 2, 0],
                               [-marker_size / 2, -marker_size / 2, 0]], dtype=np.float32)
 
+      print(f"marker_points: {marker_points}, corners: {corners}, mtx: {mtx}, distortion: {distortion}")
+
       nada, rvec, tvec = cv2.solvePnP(marker_points, corners, mtx, distortion, False, cv2.SOLVEPNP_IPPE_SQUARE)
       return rvec, tvec
    

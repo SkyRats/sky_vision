@@ -16,6 +16,7 @@ class codeDetector:
         if self.camera_name == "down_cam":
             self.publisher_center = rospy.Publisher("/sky_vision/code/center", Int16MultiArray, queue_size=1)
             self.publisher_down_cam_read = rospy.Publisher("/sky_vision/code/read", String, queue_size=1)
+            self.publisher_down_cam_bd = rospy.Publisher("/sky_vision/code/bounding_box", Int16MultiArray, queue_size=1)
         
         print(f"Created publisher for {camera_name}")
         self.bridge = CvBridge()
@@ -55,6 +56,14 @@ class codeDetector:
 
                 self.publisher_read.publish(self.code)
                 print(f"Found centralized QR Code on {self.camera_name}: {code_read}")
+
+                bounding_box = Int16MultiArray() 
+                bounding_box.data = [closest_code.rect[0], closest_code.rect[1], 
+                                closest_code.rect[0] + closest_code.rect[2], closest_code.rect[1],
+                                closest_code.rect[0] + closest_code.rect[2], closest_code.rect[1] + closest_code.rect[3], 
+                                closest_code.rect[0], closest_code.rect[1] + closest_code.rect[3]]
+                self.publisher_down_cam_bd.publish(bounding_box)
+                print(f"bounding box: {bounding_box}")
 
         elif self.camera_name == "front_cam":
             for code in pyzbar.decode(threshold):
