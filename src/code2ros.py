@@ -12,6 +12,8 @@ class codeDetector:
     def __init__(self, camera_name):
         self.camera_name = camera_name
         self.publisher_read = rospy.Publisher(f"/sky_vision/{camera_name}/code/read", String, queue_size=1)
+        self.publisher_img = rospy.Publisher(f"/sky_vision/{camera_name}/img_res", Image, queue_size=1)
+
         
         if self.camera_name == "down_cam":
             self.publisher_center = rospy.Publisher("/sky_vision/code/center", Int16MultiArray, queue_size=1)
@@ -23,14 +25,32 @@ class codeDetector:
         self.code = String()
         self.center = Int16MultiArray()
 
+    def decrease_brightness(self, img, value=30):
+        hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+        h, s, v = cv2.split(hsv)
+
+        lim = 255 - value
+        v[v > lim] = 255
+        v[v <= lim] -= value
+
+        final_hsv = cv2.merge((h, s, v))
+        res = cv2.cvtColor(final_hsv, cv2.COLOR_HSV2BGR)
+        return res
+
+
     def find_center(self, rect):
         x, y, width, height = rect[0], rect[1], rect[2], rect[3]
         return int(x + width / 2), int(y + height / 2)
 
     def process_frame(self, image: np.ndarray):
-        threshold = cv2.adaptiveThreshold(image, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, 2)
+        gray = cv2.cvtColor(self.decrease_brightness(image, 75), cv2.COLOR_BGR2GRAY)
+        #threshold = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, 2)  
+        _, threshold = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY_INV)
 
-        height, width = image.shape
+        self.publisher_img.publish(self.bridge.cv2_to_imgmsg(threshold, "mono8"))
+
+
+        height, width = gray.shape
         image_center = (width // 2, height // 2)
 
         if self.camera_name == "down_cam":
@@ -73,8 +93,8 @@ class codeDetector:
                 print(f"Found QR Code on {self.camera_name}: {code_read}")
 
     def callback(self, message):
-        frame = cv2.cvtColor(self.bridge.imgmsg_to_cv2(message, "bgr8"), cv2.COLOR_BGR2GRAY)
-        self.process_frame(frame)
+        img = self.bridge.imgmsg_to_cv2(message, "bgr8")
+        self.process_frame(img)
 
 def main():
     rospy.init_node("code_detector")
