@@ -18,8 +18,8 @@ class ColorFilterRos:
     rospy.Subscriber("/sky_vision/color_filter/upper", Int16MultiArray, self.upper_callback)
     rospy.Subscriber("/sky_vision/color_filter/camera_topic", String, self.camera_topic_callback)
     self._camera_topic = "/sky_vision/down_cam/img_raw"
-    self._lower = np.array([69, 69, 37])
-    self._upper = np.array([157, 255, 255])
+    self._lower = np.array([0, 100, 100])
+    self._upper = np.array([10, 255, 255])
     self.bridge_object = CvBridge()
 
     rospy.Subscriber(self._camera_topic, Image, self.camera_callback)

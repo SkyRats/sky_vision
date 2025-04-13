@@ -58,9 +58,16 @@ class lineFollower:
         self.theta_delta = np.pi/8
 
     def image_callback(self, msg):
-
         frame = self.cvBridge.imgmsg_to_cv2(msg, "bgr8")
-        lines = self.find_lines(frame)
+        height, width, channels = frame.shape
+        desired_height = 0.1 * height
+
+        height_start = height // 2 - desired_height // 2
+        height_end = height_start + desired_height
+
+        cropped_frame = frame[height_start:height_end, :]
+
+        lines = self.find_lines(cropped_frame)
         if lines is not None:
             for line in lines:
                 #print(line)
@@ -130,8 +137,8 @@ if __name__ == '__main__':
         if not subscribed:
             topics = rospy.get_published_topics()
             topic_list = [topic for topic, _ in topics]
-            if "/sky_vision/down_cam/img_raw" in topic_list:
-                rospy.Subscriber("/sky_vision/down_cam/img_raw", Image, detector.image_callback)
+            if "/sky_vision/color_filter/img_result" in topic_list:
+                rospy.Subscriber("/sky_vision/color_filter_img_result", Image, detector.image_callback)
                 subscribed = True
                 print("Subscribed to /sky_vision/down_cam/img_raw")
         rate.sleep()
