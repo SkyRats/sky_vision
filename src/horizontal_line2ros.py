@@ -47,7 +47,7 @@ def unify_lines(lines, rho_threshold=120, theta_threshold=np.pi/180*6):
 class lineFollower:
     def __init__(self) -> None:
         
-        self.publisher = rospy.Publisher("/sky_vision/down_cam/horizontal_line/angle", Bool)
+        self.publisher = rospy.Publisher("/sky_vision/down_cam/horizontal_line/angle", Bool, queue_size = 10)
         self.cvBridge = CvBridge()
         #self.angle = Float32()
         self.has_horizontal_line = Bool(False)
