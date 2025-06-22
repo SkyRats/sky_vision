@@ -19,8 +19,8 @@ class colorDetector:
         rospy.loginfo(f"LOOK4COLOR: Looking for a majority of the color {color} in camera_{index}. Try to make the screen {self.minimalPercentage * 100} percent of the color.")
         
         if self.color == "red":
-            self.lower = (0, 50, 20)
-            self.upper = (18, 255, 255)
+            self.lower = (128, 104, 100)
+            self.upper = (255, 255, 255)
         elif self.color == "green":
             self.lower = (36,25,25)
             self.upper = (86, 255,255)
